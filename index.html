@@ -678,7 +678,8 @@
       .to('#intro-wipe', { scale: 3, opacity: 0, duration: 1.5, ease: 'expo.inOut' }, '-=0.8')
       .set('#intro', { display: 'none' })
       .to('#main-nav', { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out' }, '-=0.4')
-      .from('.hero-line', { y: '110%', duration: 1, stagger: 0.12, ease: 'power3.out' }, '-=0.6');
+      .from('.hero-line', { y: '110%', duration: 1, stagger: 0.12, ease: 'power3.out' }, '-=0.6')
+      .set('.hero-line', { overflow: 'visible' });
 
     // === 3D PHONE TILT ===
     const phone = document.getElementById('hero-phone');
