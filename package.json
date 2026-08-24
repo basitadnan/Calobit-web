@@ -1,0 +1,6 @@
+{
+  "name": "calobit-web",
+  "private": true,
+  "type": "module",
+  "description": "Calobit download landing page + /api/checkout/* payment backend (PayGate proxy)."
+}

@@ -86,6 +86,29 @@ Then build and run from Android Studio.
 
 <br>
 
+## Payment Backend (`/api/checkout/*`)
+
+Besides the download page, this project hosts the premium-checkout backend used by the Android app. Three serverless functions proxy [PayGate](https://github.com/basitadnan) so the PayGate URL and API key never ship inside the APK:
+
+| Route | Purpose |
+|---|---|
+| `POST /api/checkout/create` | Creates a PayGate order (`product: calobit`, Rs. 250/month), binds `order_id → username` in Supabase, resumes an unexpired order if one exists |
+| `GET /api/checkout/status?order_id=…` | Polls PayGate; on first sight of `PAID` marks the order activated (idempotent) |
+| `POST /api/checkout/screenshot` | Manual-review fallback — forwards the user's receipt to PayGate |
+
+### Setup
+
+1. Create a dedicated Supabase project for payments and run [`sql/pending_checkouts.sql`](./sql/pending_checkouts.sql) in its SQL editor (RLS on, no policies — only the service key touches it).
+2. Get Calobit's per-product API key from the PayGate admin.
+3. Set these env vars on the Vercel project (Settings → Environment Variables):
+   - `PAYGATE_API_URL` — deployed PayGate URL
+   - `PAYGATE_API_KEY` — the `CALOBIT_API_KEY` value
+   - `EASYPAISA_ACCOUNT_NAME` — name on the receiving Easypaisa account (shown to buyers)
+   - `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` — from step 1 (recommended; without them checkout still works but orders aren't bound server-side)
+4. Redeploy. The Android app already targets `https://calobit.vercel.app/api/checkout/*`.
+
+<br>
+
 ## Contributing
 
 Contributions are welcome. Please open an issue to discuss significant changes before submitting a pull request.
