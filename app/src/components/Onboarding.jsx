@@ -74,7 +74,7 @@ export default function Onboarding() {
     <div className="onboarding">
       {/* Logo */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24 }}>
-        <img src="/logo.png" alt="CaloBit" style={{ width: 36, height: 36, objectFit: 'contain', borderRadius: 8 }} />
+        <img src="logo.png" alt="CaloBit" style={{ width: 36, height: 36, objectFit: 'contain', borderRadius: 8 }} />
         <span style={{ fontWeight: 700, fontSize: 20 }}>CaloBit</span>
       </div>
 
