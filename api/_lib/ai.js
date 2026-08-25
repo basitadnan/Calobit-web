@@ -4,7 +4,12 @@
 import { storeConfigured, getAiCount, setAiCount } from './store.js';
 
 const GOOGLE_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
-const API_KEY = process.env.GEMINI_API_KEY || '';
+// Multiple keys are supported (GEMINI_API_KEYS = comma-separated). When one
+// key is rate-limited (429) the request automatically moves to the next.
+const API_KEYS = (process.env.GEMINI_API_KEYS || process.env.GEMINI_API_KEY || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
 
 export const AI_FREE_LIMIT = 15;
 // Premium is unlimited in product terms; the cap exists purely to bound abuse.
@@ -15,9 +20,10 @@ export const AI_PREMIUM_LIMIT = 500;
 // model the key can reach is remembered for the lifetime of the instance.
 const MODEL_CANDIDATES = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-1.5-flash'];
 let workingModel = null;
+let workingKeyIndex = 0;
 
 export function aiConfigured() {
-  return Boolean(API_KEY);
+  return API_KEYS.length > 0;
 }
 
 function limitFor(premium) {
@@ -61,47 +67,66 @@ export async function generateContent(payload) {
   if (!aiConfigured()) {
     throw Object.assign(new Error('AI is not configured'), { status: 503 });
   }
-  const candidates = workingModel
-    ? [workingModel, ...MODEL_CANDIDATES.filter((m) => m !== workingModel)]
-    : MODEL_CANDIDATES;
 
+  // Start from the last known-good key, then rotate through the rest: a 429
+  // means that key's quota is spent, so the next key gets the request.
+  const keyOrder = API_KEYS.map((_, i) => (workingKeyIndex + i) % API_KEYS.length);
   let sawOverload = false;
-  for (const model of candidates) {
-    const res = await fetch(`${GOOGLE_BASE}/${model}:generateContent`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': API_KEY },
-      body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(30_000),
-    });
+  let sawRateLimit = false;
 
-    // 404 = key has no access to this model, 503 = overloaded — try the next.
-    if (res.status === 404 || res.status === 503) {
-      if (res.status === 503) sawOverload = true;
-      continue;
-    }
-    if (res.status === 429) {
-      throw Object.assign(new Error('The AI service is rate-limited — try again in a little while'), { status: 429 });
-    }
-    if (!res.ok) {
-      const text = await res.text();
-      let msg = `Gemini API error (${res.status})`;
-      try {
-        msg = JSON.parse(text).error?.message || msg;
-      } catch {}
-      throw Object.assign(new Error(msg), { status: 502 });
-    }
+  for (const keyIndex of keyOrder) {
+    const models = workingModel
+      ? [workingModel, ...MODEL_CANDIDATES.filter((m) => m !== workingModel)]
+      : MODEL_CANDIDATES;
 
-    workingModel = model;
-    const data = await res.json();
-    const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!rawText) {
-      throw Object.assign(new Error('No content returned from the AI.'), { status: 502 });
+    for (const model of models) {
+      const res = await fetch(`${GOOGLE_BASE}/${model}:generateContent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': API_KEYS[keyIndex] },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(30_000),
+      });
+
+      // 404 = key has no access to this model — try the next model.
+      if (res.status === 404) continue;
+      // 503 = model overloaded — the next model (or key) may still work.
+      if (res.status === 503) {
+        sawOverload = true;
+        continue;
+      }
+      // 429 = this key's quota is spent — rotate to the next key.
+      if (res.status === 429) {
+        sawRateLimit = true;
+        break;
+      }
+      if (!res.ok) {
+        const text = await res.text();
+        let msg = `Gemini API error (${res.status})`;
+        try {
+          msg = JSON.parse(text).error?.message || msg;
+        } catch {}
+        throw Object.assign(new Error(msg), { status: 502 });
+      }
+
+      workingModel = model;
+      workingKeyIndex = keyIndex;
+      const data = await res.json();
+      const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!rawText) {
+        throw Object.assign(new Error('No content returned from the AI.'), { status: 502 });
+      }
+      return rawText;
     }
-    return rawText;
   }
 
   throw Object.assign(
-    new Error(sawOverload ? 'The AI service is overloaded — try again in a little while' : 'The AI service is unavailable'),
-    { status: 502 }
+    new Error(
+      sawRateLimit
+        ? 'The AI is rate-limited right now — try again in a little while'
+        : sawOverload
+          ? 'The AI service is overloaded — try again in a little while'
+          : 'The AI service is unavailable'
+    ),
+    { status: 429 }
   );
 }
