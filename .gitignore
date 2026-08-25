@@ -1,1 +1,10 @@
+node_modules/
+dist/
+.env
+.env.local
 .vercel
+app/node_modules/
+app/dist/
+app/.env
+app/.env.local
+public_out/

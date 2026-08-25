@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 1270px; height: 760px; overflow: hidden; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+  .stage {
+    width: 1270px; height: 760px; position: relative; overflow: hidden;
+    background: radial-gradient(ellipse at 75% 20%, #232838 0%, #171A21 55%, #10131A 100%);
+    display: flex; align-items: center;
+  }
+  /* subtle lime glow */
+  .glow {
+    position: absolute; width: 900px; height: 900px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(198,241,53,0.10) 0%, rgba(198,241,53,0) 60%);
+    right: -180px; top: -200px;
+  }
+  /* faint grid texture */
+  .grid {
+    position: absolute; inset: 0;
+    background-image: linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 56px 56px;
+  }
+  .content { position: relative; padding-left: 96px; max-width: 700px; }
+  .logo-row { display: flex; align-items: center; gap: 18px; margin-bottom: 34px; }
+  .logo {
+    width: 84px; height: 84px; border-radius: 22px; background: #C6F135;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 44px; box-shadow: 0 12px 40px rgba(198,241,53,0.35);
+  }
+  .wordmark { color: #fff; font-size: 56px; font-weight: 800; letter-spacing: -1px; }
+  .wordmark span { color: #C6F135; }
+  h1 { color: #fff; font-size: 66px; font-weight: 800; line-height: 1.08; letter-spacing: -1.5px; margin-bottom: 24px; }
+  h1 em { font-style: normal; color: #C6F135; }
+  .sub { color: #9CA3AF; font-size: 25px; line-height: 1.5; margin-bottom: 40px; max-width: 560px; }
+  .sub strong { color: #E5E7EB; font-weight: 600; }
+  .badges { display: flex; gap: 14px; }
+  .badge {
+    color: #E5E7EB; font-size: 19px; font-weight: 700; padding: 12px 22px;
+    border: 1.5px solid rgba(198,241,53,0.4); border-radius: 999px;
+    background: rgba(198,241,53,0.06);
+  }
+  .badge.lime { background: #C6F135; color: #171A21; border-color: #C6F135; }
+  /* phone mockup */
+  .phone {
+    position: absolute; right: 120px; top: 90px; width: 320px; height: 640px;
+    background: #0D1017; border: 3px solid #2A2F3C; border-radius: 44px;
+    box-shadow: 0 40px 90px rgba(0,0,0,0.6), 0 0 80px rgba(198,241,53,0.08);
+    padding: 26px 20px; transform: rotate(4deg);
+  }
+  .notch { width: 90px; height: 8px; background: #2A2F3C; border-radius: 8px; margin: 0 auto 22px; }
+  .ring-wrap { display: flex; justify-content: center; margin-bottom: 18px; }
+  .kcal { text-align: center; margin-bottom: 20px; }
+  .kcal .big { color: #fff; font-size: 30px; font-weight: 800; }
+  .kcal .big span { color: #6B7280; font-size: 14px; font-weight: 500; }
+  .kcal .lbl { color: #6B7280; font-size: 12px; font-weight: 600; }
+  .macro { margin-bottom: 12px; }
+  .macro .row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+  .macro .name { color: #9CA3AF; font-size: 12px; font-weight: 600; }
+  .macro .val { color: #E5E7EB; font-size: 12px; font-weight: 700; }
+  .bar { height: 7px; background: #232838; border-radius: 6px; overflow: hidden; }
+  .bar i { display: block; height: 100%; border-radius: 6px; }
+  .meal {
+    background: #F0FDF4; border-radius: 12px; padding: 12px 14px; margin-top: 16px;
+  }
+  .meal .t { color: #1A1A1A; font-size: 13px; font-weight: 700; }
+  .meal .d { color: #6B7280; font-size: 11px; margin-top: 2px; }
+  .ai-chip {
+    position: absolute; right: 380px; bottom: 130px; transform: rotate(-3deg);
+    background: #fff; border-radius: 14px; padding: 14px 20px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5); max-width: 300px;
+  }
+  .ai-chip .q { color: #1A1A1A; font-size: 14px; font-weight: 600; }
+  .ai-chip .a { color: #6B7280; font-size: 12px; margin-top: 6px; }
+  .ai-chip .a b { color: #14B8A6; }
+  .ai-tag {
+    position: absolute; right: 420px; bottom: 96px; transform: rotate(-3deg);
+    background: #C6F135; color: #171A21; font-size: 11px; font-weight: 800;
+    padding: 4px 10px; border-radius: 999px; letter-spacing: 0.5px;
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="grid"></div>
+  <div class="glow"></div>
+
+  <div class="content">
+    <div class="logo-row">
+      <div class="logo">⚡</div>
+      <div class="wordmark">Calo<span>bit</span></div>
+    </div>
+    <h1>AI calorie tracking that<br>actually gets <em>desi food</em></h1>
+    <p class="sub">Log meals by text or photo, scan any barcode, and hit your macros — <strong>no 20-question onboarding</strong>.</p>
+    <div class="badges">
+      <div class="badge lime">Rs. 100/month</div>
+      <div class="badge">Android</div>
+    </div>
+  </div>
+
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="kcal">
+      <p class="lbl">TODAY'S CALORIES</p>
+      <p class="big">1,860 <span>/ 2,400 kcal</span></p>
+    </div>
+    <div class="macro">
+      <div class="row"><span class="name">🍞 Carbs</span><span class="val">186 / 250g</span></div>
+      <div class="bar"><i style="width: 74%; background: #C6F135;"></i></div>
+    </div>
+    <div class="macro">
+      <div class="row"><span class="name">🥛 Protein</span><span class="val">102 / 130g</span></div>
+      <div class="bar"><i style="width: 78%; background: #14B8A6;"></i></div>
+    </div>
+    <div class="macro">
+      <div class="row"><span class="name">🧈 Fat</span><span class="val">54 / 80g</span></div>
+      <div class="bar"><i style="width: 67%; background: #F59E0B;"></i></div>
+    </div>
+    <div class="meal">
+      <p class="t">🍗 Chicken Karahi + 2 Roti</p>
+      <p class="d">🔥 890 kcal · 💪 62g P · logged by AI</p>
+    </div>
+  </div>
+
+  <div class="ai-chip">
+    <p class="q">"2 aloo parathas and chai"</p>
+    <p class="a">≈ <b>640 kcal</b> · 18g P · 92g C · 24g F</p>
+  </div>
+  <div class="ai-tag">LOGGED BY AI</div>
+</div>
+</body>
+</html>

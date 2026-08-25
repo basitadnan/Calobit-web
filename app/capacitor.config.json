@@ -1,0 +1,6 @@
+{
+  "appId": "com.calobit.app",
+  "appName": "CaloBit",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}

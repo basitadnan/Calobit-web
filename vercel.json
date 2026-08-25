@@ -1,0 +1,5 @@
+{
+  "buildCommand": "cd app && npm install --no-audit --no-fund && npm run build && mkdir -p public_out/app && cp -r dist/* public_out/app/ && cp index.html version.json calobit-latest.apk public_out/",
+  "outputDirectory": "public_out",
+  "installCommand": "npm install --no-audit --no-fund"
+}
