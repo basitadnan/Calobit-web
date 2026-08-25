@@ -85,3 +85,22 @@ export async function markActivated(orderId) {
   );
   return Array.isArray(rows) && rows.length > 0;
 }
+
+// ---- AI usage budget (see ../ai/gemini.js). One row per user per month.
+
+const AI_TABLE = 'ai_usage';
+
+export async function getAiCount(userId, month) {
+  const rows = await rest(
+    `${AI_TABLE}?user_id=eq.${encodeURIComponent(userId)}&month=eq.${month}&select=count&limit=1`
+  );
+  return rows?.[0]?.count ?? 0;
+}
+
+export async function setAiCount(userId, month, count) {
+  await rest(AI_TABLE, {
+    method: 'POST',
+    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify({ user_id: userId, month, count }),
+  });
+}
