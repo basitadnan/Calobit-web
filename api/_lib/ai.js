@@ -84,7 +84,7 @@ export async function generateContent(payload) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-goog-api-key': API_KEYS[keyIndex] },
         body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(30_000),
+        signal: AbortSignal.timeout(60_000),
       });
 
       // 404 = key has no access to this model — try the next model.
