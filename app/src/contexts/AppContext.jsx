@@ -135,10 +135,8 @@ export function AppProvider({ children }) {
       }
     }
 
-    // Prompt: once after ~4s, weekly max, unless neverAsk / already bound.
+    // Prompt: ~4s after mount, every session, unless neverAsk / already bound.
     if (info.neverAsk || info.boundAt) return;
-    const lastPrompt = info.lastPromptAt ? new Date(info.lastPromptAt).getTime() : 0;
-    if (Date.now() - lastPrompt < 7 * 24 * 60 * 60 * 1000) return;
     if (!navigator.onLine) return;
 
     const t = setTimeout(() => {

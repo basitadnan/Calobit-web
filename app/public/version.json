@@ -1,7 +1,7 @@
 {
-  "versionCode": 7,
-  "versionName": "1.9",
+  "versionCode": 8,
+  "versionName": "1.10",
   "minVersionCode": 2,
-  "notes": "v1.9: Fix for cloud backup — account linking now saves your data correctly. If v1.8 showed a 'row-level security' error when backing up, update to this version (the fix also applies automatically on the server, so v1.8 can retry).",
+  "notes": "v1.10: Backup prompt now appears every session (not once a week) until you bind or say 'Don't ask again'. v1.9 fixed the RLS error that prevented binding. v1.8 added Google sign-in + cloud backup.",
   "apkUrl": "https://calobit.vercel.app/calobit-latest.apk"
 }
