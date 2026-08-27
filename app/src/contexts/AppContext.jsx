@@ -27,6 +27,7 @@ export function AppProvider({ children }) {
   const [workoutLogs, setWorkoutLogs] = useState([]);
   const [walkLogs, setWalkLogs] = useState([]);
   const [currentUser, setCurrentUser] = useState(storage.getActiveUser());
+  const [sessionUser, setSessionUser] = useState(null); // real Supabase auth state
 
   // Premium / checkout
   const [isPremium, setIsPremium] = useState(false);
@@ -67,6 +68,7 @@ export function AppProvider({ children }) {
       if (!userId) return;
       storage.setActiveUser(userId);
       setCurrentUser(userId);
+      setSessionUser(session.user);
       // First sign-in with Google: offer to bind legacy local profiles.
       if (!hasMigrated(userId)) {
         const legacy = findLegacyProfiles();
@@ -81,6 +83,7 @@ export function AppProvider({ children }) {
       if (event === 'SIGNED_OUT') {
         storage.logoutUser();
         setCurrentUser('');
+        setSessionUser(null);
         setCurrentTab('home');
       }
     });
@@ -88,6 +91,13 @@ export function AppProvider({ children }) {
     // Restore a persisted session on boot (survives app restarts).
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) handleSession(data.session);
+      else {
+        // No live session: drop any stale active-user scope so the Auth
+        // screen shows instead of treating a leftover calobit_current_user
+        // (old username system) as a signed-in Google account.
+        setSessionUser(null);
+        setCurrentUser('');
+      }
     });
 
     return () => sub.subscription.unsubscribe();
@@ -286,7 +296,7 @@ export function AppProvider({ children }) {
       selectedDate, setSelectedDate, dateStr,
       gymOnboarded, completeGymOnboarding, routine, saveRoutine, workoutLogs, logWorkout,
       walkLogs, logWalk,
-      currentUser, login, register, logout,
+      currentUser, sessionUser, login, register, logout,
       bindLegacyProfile, skipLegacyBinding,
       isPremium, openCheckout, closeCheckout, markPremiumActivated,
       bindOpen, openBind, closeBind, bindInfo,

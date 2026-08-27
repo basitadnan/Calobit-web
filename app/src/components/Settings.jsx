@@ -4,14 +4,15 @@ import { calculateGoals } from '../utils/calculations';
 import { getTemplates, saveTemplate, deleteTemplate, resetAll } from '../utils/storage';
 import { getAiUsage } from '../utils/gemini';
 import { scheduleDailyReminder, cancelDailyReminder, REMINDER_IDS } from '../utils/reminders';
-import { supabase } from '../utils/authSession';
+import { signInWithGoogle } from '../utils/authSession';
 import { getBindInfo } from './BindAccountModal';
-import { User, Calculator, Trash2, RotateCcw, Plus, X, Pencil, MapPin, Crown, CloudUpload, ShieldCheck } from 'lucide-react';
+import { User, Calculator, Trash2, RotateCcw, Plus, X, Pencil, MapPin, Crown, CloudUpload, ShieldCheck, Loader2 } from 'lucide-react';
 
 export default function Settings() {
-  const { profile, setProfile, goals, updateGoals, settings, updateSettings, currentUser, logout, isPremium, openCheckout, openBind, bindInfo } = useApp();
+  const { profile, setProfile, goals, updateGoals, settings, updateSettings, currentUser, sessionUser, logout, isPremium, openCheckout, openBind, bindInfo } = useApp();
   const [templates, setTemplates] = useState(() => getTemplates());
   const [showReset, setShowReset] = useState(false);
+  const [signingIn, setSigningIn] = useState(false);
   const [editGoals, setEditGoals] = useState({ ...goals });
   const [editProfile, setEditProfile] = useState({
     name: profile?.name || '', height: profile?.height || '', weight: profile?.weight || '',
@@ -47,6 +48,20 @@ export default function Settings() {
   const handleReset = () => {
     resetAll();
     window.location.reload();
+  };
+
+  const handleGoogleSignIn = async () => {
+    setSigningIn(true);
+    try {
+      await signInWithGoogle();
+      // Web redirects the page; native opens the in-app browser and returns
+      // via the deep link. Either way AppContext flips sessionUser.
+    } catch (err) {
+      console.error('Google sign-in failed:', err.message);
+    } finally {
+      // On native we stay here until the deep link returns.
+      setTimeout(() => setSigningIn(false), 8000);
+    }
   };
 
   // ---- Reminders (local notifications, random times — zero configuration) ----
@@ -92,7 +107,13 @@ export default function Settings() {
           <div>
             <p style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 700, textTransform: 'uppercase', marginBottom: 2 }}>Account & Backup</p>
             <p style={{ fontSize: 14, fontWeight: 600, color: '#1A1A1A' }}>👤 {profile?.name || 'User'}</p>
-            <p style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>Signed in with Google</p>
+            {sessionUser ? (
+              <p style={{ fontSize: 12, color: '#4B5563', marginTop: 2 }}>
+                Signed in with Google{sessionUser.email ? ` · ${sessionUser.email}` : ''}
+              </p>
+            ) : (
+              <p style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>Not signed in — data stays on this device</p>
+            )}
             {bindInfo?.boundAt && (
               <p style={{ fontSize: 11, color: '#4B5563', marginTop: 4 }}>
                 <ShieldCheck size={12} style={{ verticalAlign: '-2px', marginRight: 4, color: '#5c7017' }} />
@@ -100,15 +121,22 @@ export default function Settings() {
               </p>
             )}
           </div>
-          <div style={{ display: 'flex', gap: 6 }}>
-            <button className="btn-small" onClick={openBind} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <CloudUpload size={14} />
-              {bindInfo?.boundAt ? 'Back up' : 'Bind account'}
+          {sessionUser ? (
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button className="btn-small" onClick={openBind} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <CloudUpload size={14} />
+                {bindInfo?.boundAt ? 'Back up' : 'Bind account'}
+              </button>
+              <button className="btn-small" onClick={logout} style={{ background: '#EF4444', color: '#fff', display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
+                Sign Out
+              </button>
+            </div>
+          ) : (
+            <button className="btn-small" onClick={handleGoogleSignIn} disabled={signingIn} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#1A1A1A', color: '#fff', fontSize: 11 }}>
+              {signingIn ? <Loader2 size={14} className="spin" /> : null}
+              {signingIn ? 'Opening Google…' : 'Sign in with Google'}
             </button>
-            <button className="btn-small" onClick={logout} style={{ background: '#EF4444', color: '#fff', display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
-              Sign Out
-            </button>
-          </div>
+          )}
         </div>
         {bindInfo?.boundAt && (
           <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 8 }}>

@@ -106,11 +106,11 @@ export default function BindAccountModal({ mode = 'prompt', onClose }) {
               <CloudUpload size={22} color="#C6F135" />
             </div>
             <h3 style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 800 }}>
-              {mode === 'prompt' ? 'Back up your data?' : 'Back up to cloud'}
+              {mode === 'prompt' ? 'Link your Google account?' : 'Back up to cloud'}
             </h3>
             <p style={{ margin: '0 0 16px', fontSize: 13, color: '#6B7280' }}>
               {mode === 'prompt'
-                ? 'Your CaloBit data is only on this phone. Link it to your Google account so a lost or new phone can restore everything — meals, weights, gym, premium.'
+                ? 'Your CaloBit data is only on this phone right now. Link it to your Google account and it gets backed up too — so a lost or new phone can restore everything (meals, weights, gym, premium).'
                 : 'Upload the current data on this phone to your Google account. You can restore it on any device later.'}
             </p>
 

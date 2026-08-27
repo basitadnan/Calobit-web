@@ -1,7 +1,7 @@
 {
-  "versionCode": 8,
-  "versionName": "1.10",
+  "versionCode": 9,
+  "versionName": "1.11",
   "minVersionCode": 2,
-  "notes": "v1.10: Backup prompt now appears every session (not once a week) until you bind or say 'Don't ask again'. v1.9 fixed the RLS error that prevented binding. v1.8 added Google sign-in + cloud backup.",
+  "notes": "v1.11: Settings now shows your real sign-in status (it no longer says 'Signed in with Google' when you're not), and the account popup is clearer — 'Link your Google account?' is the same step that backs up your data. v1.10 shows the link prompt every session; v1.9 fixed the backup error.",
   "apkUrl": "https://calobit.vercel.app/calobit-latest.apk"
 }
