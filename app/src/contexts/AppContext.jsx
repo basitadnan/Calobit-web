@@ -435,6 +435,7 @@ export function AppProvider({ children }) {
       bindLegacyProfile, skipLegacyBinding,
       isPremium, openCheckout, closeCheckout, markPremiumActivated,
       bindOpen, openBind, closeBind, bindInfo,
+      recapOpen, openRecap,
     }}>
       {children}
       {checkoutOpen && <CheckoutModal />}
