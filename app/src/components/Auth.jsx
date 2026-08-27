@@ -1,10 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { signInWithGoogle } from '../utils/authSession';
-import { Loader2 } from 'lucide-react';
+import { findLegacyProfiles } from '../utils/migration';
+import { Loader2, ShieldCheck } from 'lucide-react';
 
 export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [legacyFound, setLegacyFound] = useState(false);
+
+  useEffect(() => {
+    // If this phone already has CaloBit data from before Google sign-in,
+    // tell the user up front so they know nothing is lost by signing in.
+    try {
+      setLegacyFound(findLegacyProfiles().length > 0);
+    } catch {}
+  }, []);
 
   const handleGoogle = async () => {
     setLoading(true);
@@ -31,6 +41,13 @@ export default function Auth() {
         <p style={{ color: '#6B7280', fontSize: 13, marginBottom: 24, textAlign: 'center' }}>
           Sign in with Google to keep your data safe — on this phone and in the cloud.
         </p>
+
+        {legacyFound && (
+          <div style={{ background: '#F3F7EC', border: '1px solid #dbe6c3', borderRadius: 10, padding: 10, marginBottom: 16, fontSize: 12, color: '#5c7017', textAlign: 'left', lineHeight: 1.5 }}>
+            <ShieldCheck size={14} style={{ verticalAlign: '-2px', marginRight: 4 }} />
+            We found your existing CaloBit data on this phone. Signing in keeps it — it moves to your Google account and nothing is deleted.
+          </div>
+        )}
 
         <button
           onClick={handleGoogle}

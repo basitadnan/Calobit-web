@@ -1,7 +1,7 @@
 {
-  "versionCode": 10,
-  "versionName": "1.12",
+  "versionCode": 11,
+  "versionName": "1.13",
   "minVersionCode": 2,
-  "notes": "v1.12: Fully automatic backup — once you've linked your Google account, CaloBit backs up silently on every launch and a few seconds after you log meals, weights or workouts. No more pressing 'Back up' manually.",
+  "notes": "v1.13: The sign-in screen now tells you if it found your existing CaloBit data — so you know nothing is lost. v1.12: fully automatic backup after binding. v1.11: honest sign-in state in Settings.",
   "apkUrl": "https://calobit.vercel.app/calobit-latest.apk"
 }
