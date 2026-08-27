@@ -129,35 +129,25 @@ export default function Settings() {
         <User size={22} style={{ verticalAlign: 'text-bottom', marginRight: 8 }} />Settings
       </h2>
 
-      {/* Account & Backup */}
-      <div className="card" style={{ background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 12, padding: '12px 16px', marginBottom: 20 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <p style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 700, textTransform: 'uppercase', marginBottom: 2 }}>Account & Backup</p>
-            <p style={{ fontSize: 14, fontWeight: 600, color: '#1A1A1A' }}>👤 {profile?.name || 'User'}</p>
+      {/* Account */}
+      <div className="card" style={{ background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 12, padding: '16px', marginBottom: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Account</p>
+            <p style={{ fontSize: 16, fontWeight: 700, color: '#1A1A1A', marginBottom: 4 }}>👤 {profile?.name || 'User'}</p>
             {sessionUser ? (
-              <p style={{ fontSize: 12, color: '#4B5563', marginTop: 2 }}>
+              <p style={{ fontSize: 13, color: '#4B5563', marginTop: 2 }}>
                 Signed in with Google{sessionUser.email ? ` · ${sessionUser.email}` : ''}
               </p>
             ) : (
-              <p style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>Not signed in — data stays on this device</p>
-            )}
-            {bindInfo?.boundAt && (
-              <p style={{ fontSize: 11, color: '#4B5563', marginTop: 4 }}>
-                <ShieldCheck size={12} style={{ verticalAlign: '-2px', marginRight: 4, color: '#5c7017' }} />
-                Cloud backup active
-              </p>
+              <p style={{ fontSize: 13, color: '#6B7280', marginTop: 2 }}>Not signed in — data stays on this device</p>
             )}
           </div>
           {sessionUser ? (
-            <div style={{ display: 'flex', gap: 6 }}>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <button className="btn-small" onClick={openBind} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <CloudUpload size={14} />
                 {bindInfo?.boundAt ? 'Back up now' : 'Bind account'}
-              </button>
-              <button className="btn-small" onClick={openRecap} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Sparkles size={14} />
-                Preview recap
               </button>
               <button className="btn-small" onClick={logout} style={{ background: '#EF4444', color: '#fff', display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
                 Sign Out
@@ -171,10 +161,40 @@ export default function Settings() {
           )}
         </div>
         {bindInfo?.boundAt && (
-          <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 8 }}>
-            Last backup: {bindInfo.lastBackupAt ? new Date(bindInfo.lastBackupAt).toLocaleDateString() : 'recently'}
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #E5E7EB', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <ShieldCheck size={14} style={{ color: '#5c7017' }} />
+              <span style={{ fontSize: 12, color: '#4B5563', fontWeight: 600 }}>Cloud backup active</span>
+            </div>
+            <span style={{ fontSize: 11, color: '#9CA3AF' }}>
+              Last backup: {bindInfo.lastBackupAt ? new Date(bindInfo.lastBackupAt).toLocaleDateString() : 'recently'}
+            </span>
           </div>
         )}
+      </div>
+
+      {/* Weekly Recap */}
+      <div className="card" style={{ background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 12, padding: '16px', marginBottom: 20 }}>
+        <p style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 700, textTransform: 'uppercase', marginBottom: 8 }}>Weekly Recap</p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 14, fontWeight: 600, color: '#1A1A1A', marginBottom: 4 }}>Your Week, Wrapped</p>
+            <p style={{ fontSize: 12, color: '#6B7280' }}>
+              {sessionUser ? 'Swipe through your weekly stats — calories, protein, walks, streak' : 'Sign in to see your weekly wrapped recap'}
+            </p>
+          </div>
+          {sessionUser ? (
+            <button className="btn-primary" onClick={openRecap} style={{ display: 'flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap' }}>
+              <Sparkles size={16} />
+              View Weekly Recap
+            </button>
+          ) : (
+            <button className="btn-primary" onClick={handleGoogleSignIn} disabled={signingIn} style={{ whiteSpace: 'nowrap' }}>
+              {signingIn ? <Loader2 size={14} className="spin" /> : null}
+              {signingIn ? 'Opening Google…' : 'Sign in to view'}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Profile */}

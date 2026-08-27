@@ -1,7 +1,7 @@
 {
-  "versionCode": 15,
-  "versionName": "1.17",
+  "versionCode": 16,
+  "versionName": "1.18",
   "minVersionCode": 2,
-  "notes": "v1.17: Added 'Preview weekly recap' button in Settings (free) so you can see the Wrapped recap anytime. v1.16: widget, water reminders, nutrients, PDF export, adaptive calories, weekly Wrapped.",
+  "notes": "v1.18: Settings UI refresh — Account & Weekly Recap as separate cards. Weekly Recap shows automatically on first launch after 1 week, then available anytime in Settings. v1.17: Preview recap button fix.",
   "apkUrl": "https://calobit.vercel.app/calobit-latest.apk"
 }
