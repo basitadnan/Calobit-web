@@ -21,6 +21,10 @@ export function getActiveUser() {
   return localStorage.getItem(KEYS.CURRENT_USER) || '';
 }
 
+export function setActiveUser(userId) {
+  localStorage.setItem(KEYS.CURRENT_USER, userId);
+}
+
 function getScopedKey(key) {
   if (key === KEYS.USERS || key === KEYS.CURRENT_USER) {
     return key;

@@ -2,7 +2,13 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 import * as storage from '../utils/storage';
 import { calculateGoals, sumMacros } from '../utils/calculations';
 import { isPremiumActive, activatePremium } from '../utils/premium';
+import { supabase, registerDeepLinkHandler, signOut as authSignOut } from '../utils/authSession';
+import { findLegacyProfiles, hasMigrated, migrateLegacyProfile } from '../utils/migration';
+import { buildSnapshot, refreshBackup, getBindStatus } from '../utils/cloudAccount';
+import { getBindInfo } from '../components/BindAccountModal';
 import CheckoutModal from '../components/CheckoutModal';
+import LegacyProfilePicker from '../components/LegacyProfilePicker';
+import BindAccountModal from '../components/BindAccountModal';
 
 const AppContext = createContext();
 
@@ -26,6 +32,15 @@ export function AppProvider({ children }) {
   const [isPremium, setIsPremium] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
 
+  // Legacy local-profile binding (v1.8 Google sign-in migration)
+  const [legacyProfiles, setLegacyProfiles] = useState(null); // null = no picker
+
+  // Cloud backup: bind prompt + manual backup modal
+  const [bindOpen, setBindOpen] = useState(false);
+  const [bindInfo, setBindInfo] = useState(null);
+  const openBind = useCallback(() => setBindOpen(true), []);
+  const closeBind = useCallback(() => setBindOpen(false), []);
+
   const dateStr = storage.getDateStr(selectedDate);
   const todayStr = storage.getDateStr();
 
@@ -44,6 +59,94 @@ export function AppProvider({ children }) {
       try { window.indexedDB.deleteDatabase('CalorieTrackerDB'); } catch (e) {}
     }
   }, []);
+
+  // Supabase session lifecycle. currentUser = Supabase user id.
+  useEffect(() => {
+    const handleSession = (session) => {
+      const userId = session?.user?.id || '';
+      if (!userId) return;
+      storage.setActiveUser(userId);
+      setCurrentUser(userId);
+      // First sign-in with Google: offer to bind legacy local profiles.
+      if (!hasMigrated(userId)) {
+        const legacy = findLegacyProfiles();
+        if (legacy.length > 0) setLegacyProfiles(legacy);
+      }
+    };
+
+    registerDeepLinkHandler((session) => handleSession(session));
+
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') handleSession(session);
+      if (event === 'SIGNED_OUT') {
+        storage.logoutUser();
+        setCurrentUser('');
+        setCurrentTab('home');
+      }
+    });
+
+    // Restore a persisted session on boot (survives app restarts).
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) handleSession(data.session);
+    });
+
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  const bindLegacyProfile = useCallback((username) => {
+    const userId = storage.getActiveUser();
+    if (userId && legacyProfiles) {
+      migrateLegacyProfile(username, userId);
+      setLegacyProfiles(null);
+      // Re-hydrate the just-migrated data.
+      setProfileState(storage.getProfile());
+      setOnboardedState(storage.isOnboarded());
+      setSettingsState(storage.getSettings());
+      setGymOnboardedState(storage.isGymOnboarded());
+      setRoutine(storage.getGymRoutine());
+      setWorkoutLogs(storage.getWorkoutLogs());
+      setWalkLogs(storage.getWalkLogs());
+      setIsPremium(isPremiumActive());
+    }
+  }, [legacyProfiles]);
+
+  const skipLegacyBinding = useCallback(() => {
+    const userId = storage.getActiveUser();
+    if (userId) {
+      // "Start fresh" — record the decision without migrating anything.
+      localStorage.setItem(`calobit_migrated_${userId}`, '');
+    }
+    setLegacyProfiles(null);
+  }, []);
+
+  // Gentle bind prompt + auto-backup (only for signed-in, onboarded users).
+  useEffect(() => {
+    if (!currentUser) return;
+    const info = getBindInfo();
+
+    // Auto-backup: bound & online & >24h since last backup → silent refresh.
+    if (info.boundAt) {
+      const stale = Date.now() - new Date(info.lastBackupAt || info.boundAt).getTime() > 24 * 60 * 60 * 1000;
+      if (stale && navigator.onLine) {
+        const snapshot = buildSnapshot(currentUser);
+        refreshBackup(snapshot)
+          .then((res) => setBindInfo((prev) => ({ ...(prev || info), lastBackupAt: res.backupAt })))
+          .catch(() => {});
+      }
+    }
+
+    // Prompt: once after ~4s, weekly max, unless neverAsk / already bound.
+    if (info.neverAsk || info.boundAt) return;
+    const lastPrompt = info.lastPromptAt ? new Date(info.lastPromptAt).getTime() : 0;
+    if (Date.now() - lastPrompt < 7 * 24 * 60 * 60 * 1000) return;
+    if (!navigator.onLine) return;
+
+    const t = setTimeout(() => {
+      setBindInfo(info);
+      setBindOpen(true);
+    }, 4000);
+    return () => clearTimeout(t);
+  }, [currentUser]);
 
   useEffect(() => {
     const p = storage.getProfile();
@@ -135,29 +238,21 @@ export function AppProvider({ children }) {
     setWalkLogs(updated);
   }, []);
 
-  const login = useCallback((username, password) => {
-    const user = storage.authenticateUser(username, password);
-    if (user) {
-      setCurrentUser(user.username);
-      return true;
-    }
-    return false;
+  const login = useCallback(async () => {
+    // Google sign-in is handled by Auth.jsx via authSession.signInWithGoogle();
+    // the session callback above sets currentUser. Kept for API compatibility.
   }, []);
 
-  const register = useCallback((name, username, password) => {
-    const success = storage.registerUser(name, username, password);
-    if (success) {
-      storage.authenticateUser(username, password);
-      setCurrentUser(username);
-      return true;
-    }
-    return false;
+  const register = useCallback(async () => {
+    // Replaced by Google sign-in (v1.8).
   }, []);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    await authSignOut();
     storage.logoutUser();
     setCurrentUser('');
     setCurrentTab('home');
+    setLegacyProfiles(null);
   }, []);
 
   const openCheckout = useCallback(() => setCheckoutOpen(true), []);
@@ -194,10 +289,20 @@ export function AppProvider({ children }) {
       gymOnboarded, completeGymOnboarding, routine, saveRoutine, workoutLogs, logWorkout,
       walkLogs, logWalk,
       currentUser, login, register, logout,
+      bindLegacyProfile, skipLegacyBinding,
       isPremium, openCheckout, closeCheckout, markPremiumActivated,
+      bindOpen, openBind, closeBind, bindInfo,
     }}>
       {children}
       {checkoutOpen && <CheckoutModal />}
+      {bindOpen && <BindAccountModal mode="prompt" onClose={closeBind} />}
+      {legacyProfiles && (
+        <LegacyProfilePicker
+          profiles={legacyProfiles}
+          onSelect={bindLegacyProfile}
+          onSkip={skipLegacyBinding}
+        />
+      )}
     </AppContext.Provider>
   );
 }

@@ -4,10 +4,12 @@ import { calculateGoals } from '../utils/calculations';
 import { getTemplates, saveTemplate, deleteTemplate, resetAll } from '../utils/storage';
 import { getAiUsage } from '../utils/gemini';
 import { scheduleDailyReminder, cancelDailyReminder, REMINDER_IDS } from '../utils/reminders';
-import { User, Calculator, Trash2, RotateCcw, Plus, X, Pencil, MapPin, Crown } from 'lucide-react';
+import { supabase } from '../utils/authSession';
+import { getBindInfo } from './BindAccountModal';
+import { User, Calculator, Trash2, RotateCcw, Plus, X, Pencil, MapPin, Crown, CloudUpload, ShieldCheck } from 'lucide-react';
 
 export default function Settings() {
-  const { profile, setProfile, goals, updateGoals, settings, updateSettings, currentUser, logout, isPremium, openCheckout } = useApp();
+  const { profile, setProfile, goals, updateGoals, settings, updateSettings, currentUser, logout, isPremium, openCheckout, openBind, bindInfo } = useApp();
   const [templates, setTemplates] = useState(() => getTemplates());
   const [showReset, setShowReset] = useState(false);
   const [editGoals, setEditGoals] = useState({ ...goals });
@@ -84,15 +86,35 @@ export default function Settings() {
         <User size={22} style={{ verticalAlign: 'text-bottom', marginRight: 8 }} />Settings
       </h2>
 
-      {/* Active Profile */}
-      <div className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 12, padding: '12px 16px', marginBottom: 20 }}>
-        <div>
-          <p style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 700, textTransform: 'uppercase', marginBottom: 2 }}>Active Profile</p>
-          <p style={{ fontSize: 16, fontWeight: 700, color: '#1A1A1A' }}>👤 {profile?.name || currentUser} (@{currentUser})</p>
+      {/* Account & Backup */}
+      <div className="card" style={{ background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 12, padding: '12px 16px', marginBottom: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <p style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 700, textTransform: 'uppercase', marginBottom: 2 }}>Account & Backup</p>
+            <p style={{ fontSize: 14, fontWeight: 600, color: '#1A1A1A' }}>👤 {profile?.name || 'User'}</p>
+            <p style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>Signed in with Google</p>
+            {bindInfo?.boundAt && (
+              <p style={{ fontSize: 11, color: '#4B5563', marginTop: 4 }}>
+                <ShieldCheck size={12} style={{ verticalAlign: '-2px', marginRight: 4, color: '#5c7017' }} />
+                Cloud backup active
+              </p>
+            )}
+          </div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button className="btn-small" onClick={openBind} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <CloudUpload size={14} />
+              {bindInfo?.boundAt ? 'Back up' : 'Bind account'}
+            </button>
+            <button className="btn-small" onClick={logout} style={{ background: '#EF4444', color: '#fff', display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
+              Sign Out
+            </button>
+          </div>
         </div>
-        <button className="btn-small" onClick={logout} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#1A1A1A', color: '#fff', fontSize: 11 }}>
-          Switch Profile
-        </button>
+        {bindInfo?.boundAt && (
+          <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 8 }}>
+            Last backup: {bindInfo.lastBackupAt ? new Date(bindInfo.lastBackupAt).toLocaleDateString() : 'recently'}
+          </div>
+        )}
       </div>
 
       {/* Profile */}

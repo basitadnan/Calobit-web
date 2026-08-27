@@ -1,7 +1,7 @@
 {
-  "versionCode": 5,
-  "versionName": "1.7",
+  "versionCode": 6,
+  "versionName": "1.8",
   "minVersionCode": 2,
-  "notes": "v1.7 test update: verifying the in-app progress-bar updater. Tap Update Now and watch the download inside the app.",
+  "notes": "v1.8: Google sign-in (in-app, no browser) — your data is now linked to your Google account and backed up to the cloud. Lost phone? Sign in on a new one and restore everything. Barcode + AI + gym all unchanged.",
   "apkUrl": "https://calobit.vercel.app/calobit-latest.apk"
 }
