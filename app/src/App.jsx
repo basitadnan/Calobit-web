@@ -9,9 +9,11 @@ import BottomNav from './components/BottomNav';
 import AddFoodFlow from './components/AddFoodFlow';
 import UpdateBanner from './components/UpdateBanner';
 import Auth from './components/Auth';
+import { WifiOff } from 'lucide-react';
 
 function App() {
   const { onboarded, currentTab, currentUser, addFlow, restoring } = useApp();
+  const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
 
   // Wait for the persisted session check so boot never flashes the wrong
   // screen (onboarding/auth) for a split second.
@@ -47,6 +49,17 @@ function App() {
 
   return (
     <>
+      {!isOnline ? (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
+          background: '#FEF3C7', borderBottom: '1px solid #F59E0B',
+          padding: '6px 12px', fontSize: 12, fontWeight: 600,
+          color: '#92400E', display: 'flex', alignItems: 'center',
+          justifyContent: 'center', gap: 6
+        }}>
+          <WifiOff size={14} /> You're offline — local data works, cloud features paused
+        </div>
+      ) : null}
       {renderTab()}
       <BottomNav />
       {addFlow.open && <AddFoodFlow />}

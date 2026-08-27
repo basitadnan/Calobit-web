@@ -127,7 +127,9 @@ export function AppProvider({ children }) {
 
   // Supabase session lifecycle. currentUser = Supabase user id.
   useEffect(() => {
+    let mounted = true;
     const handleSession = (session) => {
+      if (!mounted) return;
       const userId = session?.user?.id || '';
       if (!userId) return;
       storage.setActiveUser(userId);
@@ -151,6 +153,7 @@ export function AppProvider({ children }) {
     registerDeepLinkHandler((session) => handleSession(session));
 
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!mounted) return;
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') handleSession(session);
       if (event === 'SIGNED_OUT') {
         storage.logoutUser();
@@ -161,19 +164,34 @@ export function AppProvider({ children }) {
     });
 
     // Restore a persisted session on boot (survives app restarts).
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) handleSession(data.session);
-      else {
-        // No live session: drop any stale active-user scope so the Auth
-        // screen shows instead of treating a leftover calobit_current_user
-        // (old username system) as a signed-in Google account.
-        setSessionUser(null);
-        setCurrentUser('');
-      }
-      setRestoring(false);
-    });
+    // Wrap in a timeout so the app never hangs on the loading spinner if
+    // Supabase is unreachable (offline). Local data works fully offline.
+    (async () => {
+      const sessionPromise = supabase.auth.getSession();
+      const timeoutPromise = new Promise((resolve) =>
+        setTimeout(() => resolve({ data: { session: null } }), 3000)
+      );
 
-    return () => sub.subscription.unsubscribe();
+      try {
+        const { data } = await Promise.race([sessionPromise, timeoutPromise]);
+        if (!mounted) return;
+        if (data.session) handleSession(data.session);
+        else {
+          // No live session: drop any stale active-user scope so the Auth
+          // screen shows instead of treating a leftover calobit_current_user
+          // (old username system) as a signed-in Google account.
+          setSessionUser(null);
+          setCurrentUser('');
+        }
+      } finally {
+        if (mounted) setRestoring(false); // ALWAYS runs - success, timeout, or error
+      }
+    })();
+
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
   const bindLegacyProfile = useCallback((username) => {
