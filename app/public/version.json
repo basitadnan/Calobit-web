@@ -1,7 +1,7 @@
 {
-  "versionCode": 4,
-  "versionName": "1.6",
+  "versionCode": 5,
+  "versionName": "1.7",
   "minVersionCode": 2,
-  "notes": "v1.6: Barcode scanner fix — products that exist in Open Food Facts but have no nutrition data no longer show fake 0g values; you can now read the label with AI or enter the values manually (name pre-filled).",
+  "notes": "v1.7 test update: verifying the in-app progress-bar updater. Tap Update Now and watch the download inside the app.",
   "apkUrl": "https://calobit.vercel.app/calobit-latest.apk"
 }
