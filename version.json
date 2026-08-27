@@ -1,7 +1,7 @@
 {
-  "versionCode": 6,
-  "versionName": "1.8",
+  "versionCode": 7,
+  "versionName": "1.9",
   "minVersionCode": 2,
-  "notes": "v1.8: Google sign-in (in-app, no browser) — your data is now linked to your Google account and backed up to the cloud. Lost phone? Sign in on a new one and restore everything. Barcode + AI + gym all unchanged.",
+  "notes": "v1.9: Fix for cloud backup — account linking now saves your data correctly. If v1.8 showed a 'row-level security' error when backing up, update to this version (the fix also applies automatically on the server, so v1.8 can retry).",
   "apkUrl": "https://calobit.vercel.app/calobit-latest.apk"
 }

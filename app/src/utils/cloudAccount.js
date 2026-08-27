@@ -50,6 +50,14 @@ export function applySnapshot(snapshot, userId = getActiveUser()) {
 
 // --- API (Supabase PostgREST, RLS-scoped to auth.uid()) ---
 
+/** Session user id — the only user_id RLS will accept. Guaranteed non-null. */
+async function sessionUserId() {
+  const { data: { session } } = await supabase.auth.getSession();
+  const id = session?.user?.id;
+  if (!id) throw new Error('Not signed in.');
+  return id;
+}
+
 /** { bound, email, displayName, backupAt, bytes } or null when never bound. */
 export async function getBindStatus() {
   const { data: bound, error: bErr } = await supabase
@@ -82,16 +90,17 @@ export async function bindAccount(snapshot, userMeta) {
 
   const email = userMeta?.email || '';
   const displayName = userMeta?.name || '';
+  const userId = await sessionUserId();
 
   const { error: bErr } = await supabase
     .from(BOUND_TABLE)
-    .upsert({ email, display_name: displayName, last_seen_at: new Date().toISOString() });
+    .upsert({ user_id: userId, email, display_name: displayName, last_seen_at: new Date().toISOString() });
   if (bErr) throw new Error(bErr.message);
 
   if (snapshot) {
     const { error: kErr } = await supabase
       .from(BACKUP_TABLE)
-      .upsert({ data: snapshot.data, bytes: snapshot.bytes, updated_at: new Date().toISOString() });
+      .upsert({ user_id: userId, data: snapshot.data, bytes: snapshot.bytes, updated_at: new Date().toISOString() });
     if (kErr) throw new Error(kErr.message);
   }
 
@@ -109,7 +118,7 @@ export async function refreshBackup(snapshot) {
   if (snapshot) {
     const { error: kErr } = await supabase
       .from(BACKUP_TABLE)
-      .upsert({ data: snapshot.data, bytes: snapshot.bytes, updated_at: new Date().toISOString() });
+      .upsert({ user_id: await sessionUserId(), data: snapshot.data, bytes: snapshot.bytes, updated_at: new Date().toISOString() });
     if (kErr) throw new Error(kErr.message);
   }
   return { ok: true, backupAt: new Date().toISOString() };

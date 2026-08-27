@@ -8,3 +8,6 @@ app/dist/
 app/.env
 app/.env.local
 public_out/
+
+# Supabase CLI local link state
+supabase/
