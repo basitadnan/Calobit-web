@@ -68,6 +68,7 @@ export default function AddFoodFlow() {
     // Scanned/cached products first (they have no category, so only under "All")
     ...(dbCategory === 'all'
       ? dbScanned
+          .filter(f => f.hasNutrition !== false) // hide cached products with no nutrition data
           .filter(f => !dbQuery.trim() || (f.name || '').toLowerCase().includes(dbQuery.trim().toLowerCase()))
           .map(f => ({ ...f, category: 'scanned' }))
       : []),
@@ -161,6 +162,7 @@ export default function AddFoodFlow() {
       if (cached) {
         setScanProduct(cached);
         setScanSource('cache');
+        if (!cached.hasNutrition) setManualForm(f => ({ ...f, name: cached.name || '' }));
         return;
       }
       if (navigator.onLine === false) {
@@ -173,6 +175,7 @@ export default function AddFoodFlow() {
         await saveProduct(product);
         setScanProduct(product);
         setScanSource('off');
+        if (!product.hasNutrition) setManualForm(f => ({ ...f, name: product.name || '' }));
       } else {
         setScanMiss(true);
       }
@@ -206,6 +209,7 @@ export default function AddFoodFlow() {
         quantity: '',
         imageUrl: '',
         source: 'photo',
+        hasNutrition: true,
       };
       if (scanCode) await saveProduct(product); // cache so it logs offline forever after
       setScanProduct(product);
@@ -233,12 +237,54 @@ export default function AddFoodFlow() {
       quantity: '',
       imageUrl: '',
       source: 'manual',
+      hasNutrition: true,
     };
     if (scanCode) saveProduct(food); // cache manual entry too for repeat scans
     setScanProduct(food);
     setScanSource('manual');
     setManualOpen(false);
   };
+
+  // Shared per-100g manual entry form (used when a barcode is missing or has no nutrition data).
+  const renderManualForm = () => (
+    <div className="fade-in" style={{ background: '#F9FAFB', borderRadius: 10, padding: 12, marginBottom: 8 }}>
+      <p style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', marginBottom: 8 }}>
+        Per 100g values
+      </p>
+      <div className="form-group" style={{ marginBottom: 8 }}>
+        <label style={{ fontSize: 12, fontWeight: 600 }}>Food name</label>
+        <input
+          className="input-field"
+          placeholder="e.g. Sooper Biscuits"
+          value={manualForm.name}
+          onChange={e => setManualForm({ ...manualForm, name: e.target.value })}
+        />
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        {[
+          { key: 'calories', label: '🔥 Calories (kcal)' },
+          { key: 'protein', label: '💪 Protein (g)' },
+          { key: 'carbs', label: '🌾 Carbs (g)' },
+          { key: 'fat', label: '🧈 Fat (g)' },
+        ].map(field => (
+          <div className="form-group" key={field.key}>
+            <label style={{ fontSize: 12, fontWeight: 600 }}>{field.label}</label>
+            <input
+              className="input-field"
+              type="number"
+              inputMode="decimal"
+              placeholder="0"
+              value={manualForm[field.key]}
+              onChange={e => setManualForm({ ...manualForm, [field.key]: e.target.value })}
+            />
+          </div>
+        ))}
+      </div>
+      <button className="btn-primary" style={{ width: '100%', marginTop: 10 }} onClick={handleManualSubmit}>
+        Use These Values
+      </button>
+    </div>
+  );
 
   return (
     <div style={{
@@ -444,24 +490,55 @@ export default function AddFoodFlow() {
                   </div>
                 </div>
 
-                <div style={{ background: '#F9FAFB', borderRadius: 10, padding: 12, marginBottom: 12 }}>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', marginBottom: 6 }}>
-                    📊 Nutrition (per 100g)
-                  </p>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 13 }}>
-                    <div>🔥 <b>{scanProduct.caloriesPer100g}</b> kcal</div>
-                    <div>💪 <b>{scanProduct.proteinPer100g}</b>g protein</div>
-                    <div>🌾 <b>{scanProduct.carbsPer100g}</b>g carbs</div>
-                    <div>🧈 <b>{scanProduct.fatPer100g}</b>g fat</div>
-                  </div>
-                </div>
+                {scanProduct.hasNutrition ? (
+                  <>
+                    <div style={{ background: '#F9FAFB', borderRadius: 10, padding: 12, marginBottom: 12 }}>
+                      <p style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', marginBottom: 6 }}>
+                        📊 Nutrition (per 100g)
+                      </p>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 13 }}>
+                        <div>🔥 <b>{scanProduct.caloriesPer100g}</b> kcal</div>
+                        <div>💪 <b>{scanProduct.proteinPer100g}</b>g protein</div>
+                        <div>🌾 <b>{scanProduct.carbsPer100g}</b>g carbs</div>
+                        <div>🧈 <b>{scanProduct.fatPer100g}</b>g fat</div>
+                      </div>
+                    </div>
 
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button className="btn-secondary" style={{ flex: 1 }} onClick={resetScan}>Scan Again</button>
-                  <button className="btn-primary" style={{ flex: 1.5 }} onClick={() => setSelectedFood(scanProduct)}>
-                    <Plus size={16} /> Log Portion
-                  </button>
-                </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button className="btn-secondary" style={{ flex: 1 }} onClick={resetScan}>Scan Again</button>
+                      <button className="btn-primary" style={{ flex: 1.5 }} onClick={() => setSelectedFood(scanProduct)}>
+                        <Plus size={16} /> Log Portion
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ background: '#FFF7E6', border: '1px solid #FDE68A', borderRadius: 10, padding: 12, marginBottom: 12 }}>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: '#B45309', marginBottom: 4 }}>
+                        ⚠️ No nutrition data in the database
+                      </p>
+                      <p style={{ fontSize: 12, color: '#92400E' }}>
+                        Open Food Facts knows this product but has no per‑100g values for it. Add them from the label so your log stays accurate.
+                      </p>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                      <button className="btn-secondary" style={{ flex: 1 }} onClick={resetScan}>Scan Again</button>
+                      <button className="btn-primary" style={{ flex: 1.5 }} onClick={handlePhotoParse}>
+                        <CameraIcon size={16} /> Read Label Photo
+                      </button>
+                    </div>
+                    {!ai.premium && (
+                      <p style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 8 }}>
+                        💡 {ai.remaining} of {ai.limit} free AI calls left this month.
+                      </p>
+                    )}
+                    <button className="btn-secondary" style={{ width: '100%', marginBottom: 8 }} onClick={() => setManualOpen(v => !v)}>
+                      {manualOpen ? 'Hide manual entry' : 'Enter Manually'}
+                    </button>
+                    {manualOpen && renderManualForm()}
+                  </>
+                )}
                 <p style={{ fontSize: 11, color: '#9CA3AF', marginTop: 10 }}>
                   {scanSource === 'cache' ? '✓ Loaded from your offline saved products' :
                    scanSource === 'photo' ? '✓ Read from your nutrition panel photo' :
@@ -492,45 +569,7 @@ export default function AddFoodFlow() {
                   {manualOpen ? 'Hide manual entry' : 'Enter Manually'}
                 </button>
 
-                {manualOpen && (
-                  <div className="fade-in" style={{ background: '#F9FAFB', borderRadius: 10, padding: 12, marginBottom: 8 }}>
-                    <p style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', marginBottom: 8 }}>
-                      Per 100g values
-                    </p>
-                    <div className="form-group" style={{ marginBottom: 8 }}>
-                      <label style={{ fontSize: 12, fontWeight: 600 }}>Food name</label>
-                      <input
-                        className="input-field"
-                        placeholder="e.g. Sooper Biscuits"
-                        value={manualForm.name}
-                        onChange={e => setManualForm({ ...manualForm, name: e.target.value })}
-                      />
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                      {[
-                        { key: 'calories', label: '🔥 Calories (kcal)' },
-                        { key: 'protein', label: '💪 Protein (g)' },
-                        { key: 'carbs', label: '🌾 Carbs (g)' },
-                        { key: 'fat', label: '🧈 Fat (g)' },
-                      ].map(field => (
-                        <div className="form-group" key={field.key}>
-                          <label style={{ fontSize: 12, fontWeight: 600 }}>{field.label}</label>
-                          <input
-                            className="input-field"
-                            type="number"
-                            inputMode="decimal"
-                            placeholder="0"
-                            value={manualForm[field.key]}
-                            onChange={e => setManualForm({ ...manualForm, [field.key]: e.target.value })}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                    <button className="btn-primary" style={{ width: '100%', marginTop: 10 }} onClick={handleManualSubmit}>
-                      Use These Values
-                    </button>
-                  </div>
-                )}
+                {manualOpen && renderManualForm()}
 
                 <button
                   onClick={resetScan}

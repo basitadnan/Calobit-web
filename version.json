@@ -1,7 +1,7 @@
 {
-  "versionCode": 3,
-  "versionName": "1.5",
+  "versionCode": 4,
+  "versionName": "1.6",
   "minVersionCode": 2,
-  "notes": "v1.5: weight tracker with trend chart, weekly adaptive report (premium AI coach), meal + weigh-in reminders. Premium now Rs. 100/month.",
+  "notes": "v1.6: Barcode scanner fix — products that exist in Open Food Facts but have no nutrition data no longer show fake 0g values; you can now read the label with AI or enter the values manually (name pre-filled).",
   "apkUrl": "/calobit-latest.apk"
 }

@@ -40,6 +40,13 @@ function kcal100(nutriments) {
   return 0;
 }
 
+/** True when the OFF record actually carries per‑100g nutrient values. */
+function hasNutritionData(nutriments) {
+  const n = nutriments || {};
+  return ['energy-kcal_100g', 'energy_100g', 'proteins_100g', 'carbohydrates_100g', 'fat_100g']
+    .some(k => Number(n[k]) > 0);
+}
+
 /** Map an OpenFoodFacts product object (v2 "product" field) to the app shape. */
 export function mapProduct(offProduct, code) {
   const n = offProduct.nutriments || {};
@@ -50,6 +57,7 @@ export function mapProduct(offProduct, code) {
     quantity: offProduct.quantity || '',
     imageUrl: offProduct.image_small_url || '',
     source: 'openfoodfacts',
+    hasNutrition: hasNutritionData(n),
     caloriesPer100g: kcal100(n),
     proteinPer100g: round1(n.proteins_100g),
     carbsPer100g: round1(n.carbohydrates_100g),
