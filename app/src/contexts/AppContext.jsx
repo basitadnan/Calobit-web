@@ -49,6 +49,7 @@ export function AppProvider({ children }) {
   const [recapOpen, setRecapOpen] = useState(false);
   const openBind = useCallback(() => setBindOpen(true), []);
   const closeBind = useCallback(() => setBindOpen(false), []);
+  const openRecap = useCallback(() => setRecapOpen(true), []);
 
   const closeRecap = useCallback(() => {
     const now = new Date();

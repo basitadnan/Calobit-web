@@ -1,7 +1,7 @@
 {
-  "versionCode": 14,
-  "versionName": "1.16",
+  "versionCode": 15,
+  "versionName": "1.17",
   "minVersionCode": 2,
-  "notes": "v1.16: Home-screen widget (calories + macros), 5 daily water reminders, fiber/sugar/sodium tracking, weekly PDF export — all free. Premium adds: weekly Wrapped recap and adaptive calories that auto-tune your goal from your weigh-ins.",
+  "notes": "v1.17: Added 'Preview weekly recap' button in Settings (free) so you can see the Wrapped recap anytime. v1.16: widget, water reminders, nutrients, PDF export, adaptive calories, weekly Wrapped.",
   "apkUrl": "https://calobit.vercel.app/calobit-latest.apk"
 }

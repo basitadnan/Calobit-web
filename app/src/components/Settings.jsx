@@ -7,10 +7,10 @@ import { scheduleDailyReminder, cancelDailyReminder, REMINDER_IDS } from '../uti
 import { exportWeeklyPdf } from '../utils/pdfExport';
 import { signInWithGoogle } from '../utils/authSession';
 import { getBindInfo } from './BindAccountModal';
-import { User, Calculator, Trash2, RotateCcw, Plus, X, Pencil, MapPin, Crown, CloudUpload, ShieldCheck, Loader2, Download } from 'lucide-react';
+import { User, Calculator, Trash2, RotateCcw, Plus, X, Pencil, MapPin, Crown, CloudUpload, ShieldCheck, Loader2, Download, Sparkles } from 'lucide-react';
 
 export default function Settings() {
-  const { profile, setProfile, goals, updateGoals, settings, updateSettings, currentUser, sessionUser, logout, isPremium, openCheckout, openBind, bindInfo } = useApp();
+  const { profile, setProfile, goals, updateGoals, settings, updateSettings, currentUser, sessionUser, logout, isPremium, openCheckout, openBind, openRecap, bindInfo } = useApp();
   const [templates, setTemplates] = useState(() => getTemplates());
   const [showReset, setShowReset] = useState(false);
   const [signingIn, setSigningIn] = useState(false);
@@ -154,6 +154,10 @@ export default function Settings() {
               <button className="btn-small" onClick={openBind} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <CloudUpload size={14} />
                 {bindInfo?.boundAt ? 'Back up now' : 'Bind account'}
+              </button>
+              <button className="btn-small" onClick={openRecap} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Sparkles size={14} />
+                Preview recap
               </button>
               <button className="btn-small" onClick={logout} style={{ background: '#EF4444', color: '#fff', display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
                 Sign Out
