@@ -16,7 +16,7 @@ export function getBindInfo() {
   }
 }
 
-function saveBindInfo(info) {
+export function saveBindInfo(info) {
   localStorage.setItem(BIND_INFO_KEY, JSON.stringify(info));
 }
 

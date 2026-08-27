@@ -125,7 +125,7 @@ export default function Settings() {
             <div style={{ display: 'flex', gap: 6 }}>
               <button className="btn-small" onClick={openBind} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <CloudUpload size={14} />
-                {bindInfo?.boundAt ? 'Back up' : 'Bind account'}
+                {bindInfo?.boundAt ? 'Back up now' : 'Bind account'}
               </button>
               <button className="btn-small" onClick={logout} style={{ background: '#EF4444', color: '#fff', display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
                 Sign Out

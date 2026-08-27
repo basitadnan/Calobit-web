@@ -1,11 +1,11 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import * as storage from '../utils/storage';
 import { calculateGoals, sumMacros } from '../utils/calculations';
 import { isPremiumActive, activatePremium } from '../utils/premium';
 import { supabase, registerDeepLinkHandler, signOut as authSignOut } from '../utils/authSession';
 import { findLegacyProfiles, hasMigrated, migrateLegacyProfile } from '../utils/migration';
 import { buildSnapshot, refreshBackup, getBindStatus } from '../utils/cloudAccount';
-import { getBindInfo } from '../components/BindAccountModal';
+import { getBindInfo, saveBindInfo } from '../components/BindAccountModal';
 import CheckoutModal from '../components/CheckoutModal';
 import LegacyProfilePicker from '../components/LegacyProfilePicker';
 import BindAccountModal from '../components/BindAccountModal';
@@ -129,20 +129,48 @@ export function AppProvider({ children }) {
     setLegacyProfiles(null);
   }, []);
 
+  // ---- Auto cloud backup: bound users stay backed up without pressing anything. ----
+  const currentUserRef = useRef(currentUser);
+  currentUserRef.current = currentUser;
+  const backupTimer = useRef(null);
+
+  const scheduleAutoBackup = useCallback(() => {
+    const userId = currentUserRef.current;
+    if (!userId) return;
+    const info = getBindInfo();
+    if (!info.boundAt) return;             // not bound → nothing to push
+    if (!navigator.onLine) return;
+    if (backupTimer.current) clearTimeout(backupTimer.current);
+    backupTimer.current = setTimeout(async () => {
+      backupTimer.current = null;
+      try {
+        const snapshot = buildSnapshot(userId);
+        const res = await refreshBackup(snapshot);
+        const next = { ...getBindInfo(), lastBackupAt: res.backupAt };
+        saveBindInfo(next);
+        setBindInfo(next);
+      } catch {
+        // Silent — next launch or change will retry.
+      }
+    }, 8000);
+  }, []);
+
   // Gentle bind prompt + auto-backup (only for signed-in, onboarded users).
   useEffect(() => {
     if (!currentUser) return;
     const info = getBindInfo();
 
-    // Auto-backup: bound & online & >24h since last backup → silent refresh.
-    if (info.boundAt) {
-      const stale = Date.now() - new Date(info.lastBackupAt || info.boundAt).getTime() > 24 * 60 * 60 * 1000;
-      if (stale && navigator.onLine) {
-        const snapshot = buildSnapshot(currentUser);
-        refreshBackup(snapshot)
-          .then((res) => setBindInfo((prev) => ({ ...(prev || info), lastBackupAt: res.backupAt })))
-          .catch(() => {});
-      }
+    // Auto-backup: bound & online → silent refresh every launch (keeps the
+    // cloud copy current even if nothing changed since last time).
+    if (info.boundAt && navigator.onLine) {
+      const snapshot = buildSnapshot(currentUser);
+      refreshBackup(snapshot)
+        .then((res) => {
+          const next = { ...getBindInfo(), lastBackupAt: res.backupAt };
+          saveBindInfo(next);
+          setBindInfo(next);
+        })
+        .catch(() => {});
     }
 
     // Prompt: ~4s after mount, every session, unless neverAsk / already bound.
@@ -185,6 +213,7 @@ export function AppProvider({ children }) {
     storage.saveProfile(data);
     setProfileState(data);
     if (data.goals) setGoals(data.goals);
+    scheduleAutoBackup();
   }, []);
 
   const completeOnboarding = useCallback((profileData) => {
@@ -195,17 +224,20 @@ export function AppProvider({ children }) {
     setProfileState(finalProfile);
     setGoals(computed);
     setOnboardedState(true);
+    scheduleAutoBackup();
   }, []);
 
   const logMeal = useCallback((meal) => {
     const updated = storage.saveMeal(dateStr, meal);
     if (dateStr === todayStr) setTodayMeals(updated);
     else setTodayMeals(storage.getMeals(dateStr));
+    scheduleAutoBackup();
   }, [dateStr, todayStr]);
 
   const removeMeal = useCallback((mealId) => {
     const updated = storage.deleteMeal(dateStr, mealId);
     setTodayMeals(updated);
+    scheduleAutoBackup();
   }, [dateStr]);
 
   const refreshMeals = useCallback(() => {
@@ -217,11 +249,13 @@ export function AppProvider({ children }) {
     const p = { ...profile, goals: newGoals };
     storage.saveProfile(p);
     setProfileState(p);
+    scheduleAutoBackup();
   }, [profile]);
 
   const updateSettings = useCallback((s) => {
     storage.saveSettings(s);
     setSettingsState(s);
+    scheduleAutoBackup();
   }, []);
 
   const completeGymOnboarding = useCallback((routineData) => {
@@ -229,21 +263,25 @@ export function AppProvider({ children }) {
     storage.setGymOnboarded(true);
     setRoutine(routineData);
     setGymOnboardedState(true);
+    scheduleAutoBackup();
   }, []);
 
   const saveRoutine = useCallback((newRoutine) => {
     storage.saveGymRoutine(newRoutine);
     setRoutine(newRoutine);
+    scheduleAutoBackup();
   }, []);
 
   const logWorkout = useCallback((log) => {
     const updated = storage.saveWorkoutLog(log);
     setWorkoutLogs(updated);
+    scheduleAutoBackup();
   }, []);
 
   const logWalk = useCallback((log) => {
     const updated = storage.saveWalkLog(log);
     setWalkLogs(updated);
+    scheduleAutoBackup();
   }, []);
 
   const login = useCallback(async () => {

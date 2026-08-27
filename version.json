@@ -1,7 +1,7 @@
 {
-  "versionCode": 9,
-  "versionName": "1.11",
+  "versionCode": 10,
+  "versionName": "1.12",
   "minVersionCode": 2,
-  "notes": "v1.11: Settings now shows your real sign-in status (it no longer says 'Signed in with Google' when you're not), and the account popup is clearer — 'Link your Google account?' is the same step that backs up your data. v1.10 shows the link prompt every session; v1.9 fixed the backup error.",
+  "notes": "v1.12: Fully automatic backup — once you've linked your Google account, CaloBit backs up silently on every launch and a few seconds after you log meals, weights or workouts. No more pressing 'Back up' manually.",
   "apkUrl": "https://calobit.vercel.app/calobit-latest.apk"
 }
