@@ -4,7 +4,13 @@
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
 
-export const REMINDER_IDS = { MEAL: 100, MEAL2: 102, WEIGH: 101 };
+export const REMINDER_IDS = {
+  MEAL: 100,
+  MEAL2: 102,
+  WEIGH: 101,
+  // Five daily water nudges (Settings schedules these all together).
+  WATER: [103, 104, 105, 106, 107],
+};
 
 export async function notificationsSupported() {
   return Capacitor.isNativePlatform();

@@ -27,6 +27,9 @@ export default function FoodLogDrawer({ food, onClose, onLogged, initialMealType
       protein_g: scaled.protein,
       carbs_g: scaled.carbs,
       fat_g: scaled.fat,
+      fiber_g: scaled.fiber,
+      sugar_g: scaled.sugar,
+      sodium_mg: scaled.sodium,
       type: mealType,
       items: [{
         name,
@@ -34,6 +37,9 @@ export default function FoodLogDrawer({ food, onClose, onLogged, initialMealType
         protein_g: scaled.protein,
         carbs_g: scaled.carbs,
         fat_g: scaled.fat,
+        fiber_g: scaled.fiber,
+        sugar_g: scaled.sugar,
+        sodium_mg: scaled.sodium,
       }],
     });
     if (onLogged) onLogged();

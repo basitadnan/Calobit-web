@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { Scale, TrendingDown, TrendingUp } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
 import { useApp } from '../contexts/AppContext';
-import { getWeights, saveWeight, getDateStr } from '../utils/storage';
+import { getWeights, saveWeight, getDateStr, getAllMeals } from '../utils/storage';
+import { maybeAdaptiveGoal } from '../utils/adaptive';
 
 export default function WeightCard() {
-  const { profile } = useApp();
+  const { profile, goals, updateGoals, settings } = useApp();
   const [weights, setWeights] = useState(() => getWeights());
   const [input, setInput] = useState('');
   const [error, setError] = useState('');
@@ -28,8 +29,18 @@ export default function WeightCard() {
       setError('Enter a weight between 25 and 400 kg');
       return;
     }
-    setWeights(saveWeight(todayStr, Math.round(kg * 10) / 10));
+    const newWeights = saveWeight(todayStr, Math.round(kg * 10) / 10);
+    setWeights(newWeights);
     setInput('');
+    // Adaptive calories (premium): when enabled, tune the goal from the trend.
+    if (settings?.adaptiveCalories) {
+      try {
+        const adj = maybeAdaptiveGoal({ goals, profile, weights: newWeights, allMeals: getAllMeals() });
+        if (adj && adj.calories !== goals.calories) updateGoals(adj);
+      } catch (err) {
+        console.warn('adaptive calories failed:', err.message);
+      }
+    }
   };
 
   return (

@@ -57,7 +57,7 @@ export function calculateGoals(profile) {
 
 /**
  * Scale a per-100g food item to a portion size in grams.
- * Returns calories/protein/carbs/fat for `grams` of the food.
+ * Returns calories/protein/carbs/fat (+ optional fiber/sugar/sodium) for `grams`.
  */
 export function scaleFoodNutrition(food, grams) {
   const factor = (grams || 0) / 100;
@@ -66,6 +66,9 @@ export function scaleFoodNutrition(food, grams) {
     protein: Math.round((food.proteinPer100g || 0) * factor * 10) / 10,
     carbs: Math.round((food.carbsPer100g || 0) * factor * 10) / 10,
     fat: Math.round((food.fatPer100g || 0) * factor * 10) / 10,
+    fiber: Math.round((food.fiberPer100g || 0) * factor * 10) / 10,
+    sugar: Math.round((food.sugarPer100g || 0) * factor * 10) / 10,
+    sodium: Math.round((food.sodiumPer100g || 0) * factor * 10) / 10,
   };
 }
 
@@ -76,6 +79,15 @@ export function sumMacros(meals) {
     carbs: acc.carbs + (m.carbs_g || 0),
     fat: acc.fat + (m.fat_g || 0),
   }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+}
+
+/** Extra nutrients (free tier): fiber, sugar, sodium — 0 when not logged. */
+export function sumNutrients(meals) {
+  return meals.reduce((acc, m) => ({
+    fiber: acc.fiber + (m.fiber_g || 0),
+    sugar: acc.sugar + (m.sugar_g || 0),
+    sodium: acc.sodium + (m.sodium_mg || 0),
+  }), { fiber: 0, sugar: 0, sodium: 0 });
 }
 
 export function getGreeting() {

@@ -62,6 +62,10 @@ export function mapProduct(offProduct, code) {
     proteinPer100g: round1(n.proteins_100g),
     carbsPer100g: round1(n.carbohydrates_100g),
     fatPer100g: round1(n.fat_100g),
+    // Extra nutrients (free tier) — 0 when OFF doesn't carry them.
+    fiberPer100g: round1(n.fiber_100g),
+    sugarPer100g: round1(n.sugars_100g),
+    sodiumPer100g: round1(n.sodium_100g),
   };
 }
 

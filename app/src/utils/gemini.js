@@ -116,13 +116,19 @@ Return a JSON object strictly matching this format:
   "totalProtein": number (float/int),
   "totalCarbs": number (float/int),
   "totalFat": number (float/int),
+  "totalFiber": number (float/int, grams, estimate 0 if unknown),
+  "totalSugar": number (float/int, grams, estimate 0 if unknown),
+  "totalSodium": number (float/int, milligrams, estimate 0 if unknown),
   "items": [
     {
       "name": "Item description with portion",
       "calories": number,
       "protein_g": number,
       "carbs_g": number,
-      "fat_g": number
+      "fat_g": number,
+      "fiber_g": number,
+      "sugar_g": number,
+      "sodium_mg": number
     }
   ]
 }`;
@@ -137,7 +143,20 @@ Return a JSON object strictly matching this format:
     ],
     generationConfig: { temperature: 0.2, responseMimeType: 'application/json' },
   });
-  return JSON.parse(text);
+  const parsed = JSON.parse(text);
+  const round1 = (v) => Math.round((Number(v) || 0) * 10) / 10;
+  return {
+    ...parsed,
+    totalFiber: round1(parsed.totalFiber),
+    totalSugar: round1(parsed.totalSugar),
+    totalSodium: round1(parsed.totalSodium),
+    items: (parsed.items || []).map((it) => ({
+      ...it,
+      fiber_g: round1(it.fiber_g),
+      sugar_g: round1(it.sugar_g),
+      sodium_mg: round1(it.sodium_mg),
+    })),
+  };
 }
 
 /**
@@ -156,11 +175,14 @@ Return a JSON object exactly matching this format:
   "caloriesPer100g": number (integer),
   "proteinPer100g": number (float/int, grams per 100g),
   "carbsPer100g": number (float/int, grams per 100g),
-  "fatPer100g": number (float/int, grams per 100g)
+  "fatPer100g": number (float/int, grams per 100g),
+  "fiberPer100g": number (float/int, grams per 100g, 0 if not shown),
+  "sugarPer100g": number (float/int, grams per 100g, 0 if not shown),
+  "sodiumPer100g": number (float/int, milligrams per 100g, 0 if not shown)
 }
 If a value is not visible, use 0. Only return the JSON object.`;
 
-  const prompt = `Nutrition facts panel photo. Extract calories, protein, carbs and fat per 100g:\n\n${systemInstruction}`;
+  const prompt = `Nutrition facts panel photo. Extract calories, protein, carbs, fat, fiber, sugar and sodium per 100g:\n\n${systemInstruction}`;
 
   const { text } = await callGeminiAPI({
     contents: [
@@ -183,5 +205,8 @@ If a value is not visible, use 0. Only return the JSON object.`;
     proteinPer100g: round1(parsed.proteinPer100g),
     carbsPer100g: round1(parsed.carbsPer100g),
     fatPer100g: round1(parsed.fatPer100g),
+    fiberPer100g: round1(parsed.fiberPer100g),
+    sugarPer100g: round1(parsed.sugarPer100g),
+    sodiumPer100g: round1(parsed.sodiumPer100g),
   };
 }

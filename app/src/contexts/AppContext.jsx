@@ -5,10 +5,13 @@ import { isPremiumActive, activatePremium } from '../utils/premium';
 import { supabase, registerDeepLinkHandler, signOut as authSignOut } from '../utils/authSession';
 import { findLegacyProfiles, hasMigrated, migrateLegacyProfile } from '../utils/migration';
 import { buildSnapshot, refreshBackup, getBindStatus } from '../utils/cloudAccount';
+import { updateWidget } from '../utils/widget';
+import { maybeAdaptiveGoal } from '../utils/adaptive';
 import { getBindInfo, saveBindInfo } from '../components/BindAccountModal';
 import CheckoutModal from '../components/CheckoutModal';
 import LegacyProfilePicker from '../components/LegacyProfilePicker';
 import BindAccountModal from '../components/BindAccountModal';
+import WeeklyRecap from '../components/WeeklyRecap';
 
 const AppContext = createContext();
 
@@ -43,8 +46,50 @@ export function AppProvider({ children }) {
   // Cloud backup: bind prompt + manual backup modal
   const [bindOpen, setBindOpen] = useState(false);
   const [bindInfo, setBindInfo] = useState(null);
+  const [recapOpen, setRecapOpen] = useState(false);
   const openBind = useCallback(() => setBindOpen(true), []);
   const closeBind = useCallback(() => setBindOpen(false), []);
+
+  const closeRecap = useCallback(() => {
+    const now = new Date();
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+    const weekStart = storage.getDateStr(monday);
+    if (currentUser) {
+      localStorage.setItem(`calobit_${currentUser}_last_recap`, weekStart);
+    }
+    setRecapOpen(false);
+  }, [currentUser]);
+
+  // Weekly "Wrapped" recap: once per week, starting 7 days after first
+  // launch, only when the week actually has logged meals. Takes priority
+  // over the bind prompt for that session.
+  useEffect(() => {
+    if (restoring || !currentUser) return;
+    const firstKey = `calobit_${currentUser}_first_launch`;
+    if (!localStorage.getItem(firstKey)) {
+      localStorage.setItem(firstKey, storage.getDateStr());
+    }
+    const first = new Date(localStorage.getItem(firstKey) + 'T00:00:00');
+    if (Number.isNaN(first.getTime()) || Date.now() - first.getTime() < 7 * 24 * 60 * 60 * 1000) return;
+
+    const now = new Date();
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+    const weekStart = storage.getDateStr(monday);
+    if (localStorage.getItem(`calobit_${currentUser}_last_recap`) === weekStart) return;
+
+    let weekHasData = false;
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(now);
+      d.setDate(now.getDate() - i);
+      if ((storage.getMeals(storage.getDateStr(d)) || []).length > 0) { weekHasData = true; break; }
+    }
+    if (!weekHasData) return;
+
+    const t = setTimeout(() => setRecapOpen(true), 3000);
+    return () => clearTimeout(t);
+  }, [restoring, currentUser]);
 
   const dateStr = storage.getDateStr(selectedDate);
   const todayStr = storage.getDateStr();
@@ -192,16 +237,18 @@ export function AppProvider({ children }) {
         .catch(() => {});
     }
 
-    // Prompt: ~4s after mount, every session, unless neverAsk / already bound.
+    // Prompt: ~4s after mount, every session, unless neverAsk / already
+    // bound. Deferred while the weekly recap is open (recap takes priority).
     if (info.neverAsk || info.boundAt) return;
     if (!navigator.onLine) return;
+    if (recapOpen) return;
 
     const t = setTimeout(() => {
       setBindInfo(info);
       setBindOpen(true);
     }, 4000);
     return () => clearTimeout(t);
-  }, [currentUser]);
+  }, [currentUser, recapOpen]);
 
   useEffect(() => {
     const p = storage.getProfile();
@@ -223,10 +270,40 @@ export function AppProvider({ children }) {
     setIsPremium(isPremiumActive());
   }, [currentUser]);
 
+  // Adaptive calories (premium): re-tune the goal from the weight trend once
+  // at startup when enabled (the weigh-in path also re-tunes on every save).
+  useEffect(() => {
+    if (!currentUser) return;
+    const s = storage.getSettings();
+    if (!s?.adaptiveCalories) return;
+    const p = storage.getProfile();
+    if (!p?.goals) return;
+    try {
+      const adj = maybeAdaptiveGoal({ goals: p.goals, profile: p, allMeals: storage.getAllMeals() });
+      if (adj && adj.calories !== p.goals.calories) updateGoals(adj);
+    } catch (err) {
+      console.warn('adaptive calories failed:', err.message);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser]);
+
   useEffect(() => {
     const meals = storage.getMeals(dateStr);
     setTodayMeals(meals);
   }, [dateStr, currentUser]);
+
+  // Home-screen widget: mirror today's real totals + goals whenever meals or
+  // goals change (uses the actual current date, not the date being viewed).
+  useEffect(() => {
+    const t = sumMacros(storage.getMeals(storage.getDateStr()));
+    updateWidget({
+      calories: t.calories,
+      remaining: Math.max(0, goals.calories - t.calories),
+      protein: t.protein,
+      carbs: t.carbs,
+      fat: t.fat,
+    });
+  }, [todayMeals, goals]);
 
   const setProfile = useCallback((data) => {
     storage.saveProfile(data);
@@ -361,6 +438,7 @@ export function AppProvider({ children }) {
       {children}
       {checkoutOpen && <CheckoutModal />}
       {bindOpen && <BindAccountModal mode="prompt" onClose={closeBind} />}
+      {recapOpen && <WeeklyRecap onClose={closeRecap} />}
       {legacyProfiles && (
         <LegacyProfilePicker
           profiles={legacyProfiles}

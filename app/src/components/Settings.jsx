@@ -4,15 +4,17 @@ import { calculateGoals } from '../utils/calculations';
 import { getTemplates, saveTemplate, deleteTemplate, resetAll } from '../utils/storage';
 import { getAiUsage } from '../utils/gemini';
 import { scheduleDailyReminder, cancelDailyReminder, REMINDER_IDS } from '../utils/reminders';
+import { exportWeeklyPdf } from '../utils/pdfExport';
 import { signInWithGoogle } from '../utils/authSession';
 import { getBindInfo } from './BindAccountModal';
-import { User, Calculator, Trash2, RotateCcw, Plus, X, Pencil, MapPin, Crown, CloudUpload, ShieldCheck, Loader2 } from 'lucide-react';
+import { User, Calculator, Trash2, RotateCcw, Plus, X, Pencil, MapPin, Crown, CloudUpload, ShieldCheck, Loader2, Download } from 'lucide-react';
 
 export default function Settings() {
   const { profile, setProfile, goals, updateGoals, settings, updateSettings, currentUser, sessionUser, logout, isPremium, openCheckout, openBind, bindInfo } = useApp();
   const [templates, setTemplates] = useState(() => getTemplates());
   const [showReset, setShowReset] = useState(false);
   const [signingIn, setSigningIn] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [editGoals, setEditGoals] = useState({ ...goals });
   const [editProfile, setEditProfile] = useState({
     name: profile?.name || '', height: profile?.height || '', weight: profile?.weight || '',
@@ -64,6 +66,17 @@ export default function Settings() {
     }
   };
 
+  const handleExportPdf = async () => {
+    setExporting(true);
+    try {
+      await exportWeeklyPdf({ goals });
+    } catch (err) {
+      console.error('PDF export failed:', err.message);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   // ---- Reminders (local notifications, random times — zero configuration) ----
   const reminders = settings.reminders || {};
 
@@ -76,19 +89,34 @@ export default function Settings() {
   const updateReminder = async (kind) => {
     const enabled = !reminders[kind]?.enabled;
     // Fresh random times every time a reminder is switched on: meals get two
-    // nudges a day (late morning + evening), weigh-ins one morning nudge.
-    const times = kind === 'meal' ? [randTime(10, 13), randTime(18, 21)] : [randTime(7, 9)];
+    // nudges a day (late morning + evening), weigh-ins one morning nudge,
+    // water five nudges spread across the day.
+    let ids, titles, bodies, times;
+    if (kind === 'meal') {
+      times = [randTime(10, 13), randTime(18, 21)];
+      ids = [REMINDER_IDS.MEAL, REMINDER_IDS.MEAL2];
+      titles = ['Lunch check-in 🍽️', 'Dinner check-in 🍽️'];
+      bodies = ['Quick log — 10 seconds keeps the streak alive.', 'Log what you ate before the day wraps up.'];
+    } else if (kind === 'water') {
+      times = Array.from({ length: 5 }, () => randTime(9, 21));
+      ids = REMINDER_IDS.WATER;
+      titles = times.map(() => '💧 Time to hydrate');
+      bodies = times.map(() => 'Your body needs water — a quick sip keeps you fresh.');
+    } else {
+      times = [randTime(7, 9)];
+      ids = [REMINDER_IDS.WEIGH];
+      titles = ['Weekly weigh-in ⚖️'];
+      bodies = ['Hop on the scale — the weekly report uses your weight.'];
+    }
     const next = { ...reminders, [kind]: { enabled, times } };
     updateSettings({ ...settings, reminders: next });
 
-    const ids = kind === 'meal' ? [REMINDER_IDS.MEAL, REMINDER_IDS.MEAL2] : [REMINDER_IDS.WEIGH];
-    const titles = kind === 'meal' ? ['Lunch check-in 🍽️', 'Dinner check-in 🍽️'] : ['Weekly weigh-in ⚖️'];
-    const bodies = kind === 'meal' ? ['Quick log — 10 seconds keeps the streak alive.', 'Log what you ate before the day wraps up.'] : ['Hop on the scale — the weekly report uses your weight.'];
     try {
       for (const id of ids) await cancelDailyReminder(id);
       if (enabled) {
-        await scheduleDailyReminder(ids[0], titles[0], bodies[0], times[0]);
-        if (times[1]) await scheduleDailyReminder(ids[1], titles[1], bodies[1], times[1]);
+        for (let i = 0; i < ids.length; i++) {
+          await scheduleDailyReminder(ids[i], titles[i], bodies[i], times[i]);
+        }
       }
     } catch (err) {
       console.warn('reminder scheduling failed:', err);
@@ -252,6 +280,21 @@ export default function Settings() {
             <button className="btn-primary" onClick={() => { handleSaveGoals(); setEditingGoals(false); }}>Save Goals</button>
           </>
         )}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, borderTop: '1px solid #F3F4F6', marginTop: 14 }}>
+          <div>
+            <p style={{ fontSize: 14, fontWeight: 600, margin: 0 }}>Adaptive calories</p>
+            <p style={{ fontSize: 12, color: '#6B7280', margin: 0 }}>
+              {isPremium ? 'Auto-tune from your weigh-in trend' : 'Premium feature — weigh in weekly, CaloBit adjusts for you'}
+            </p>
+          </div>
+          {isPremium ? (
+            <input type="checkbox" checked={!!settings.adaptiveCalories} onChange={() => updateSettings({ ...settings, adaptiveCalories: !settings.adaptiveCalories })} style={{ width: 18, height: 18 }} />
+          ) : (
+            <button className="btn-small" onClick={openCheckout} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Crown size={14} /> Premium
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Toggles */}
@@ -286,16 +329,18 @@ export default function Settings() {
         <h3>Reminders</h3>
         {[
           ['meal', 'Log my meal', 'Two random nudges a day to keep the streak alive'],
+          ['water', 'Drink water', 'Five random nudges a day — hydration matters'],
           ['weigh', 'Weekly weigh-in', 'A random morning nudge — feeds the adaptive report'],
         ].map(([kind, label, desc]) => {
           const r = reminders[kind] || { enabled: false, times: [] };
+          const summary = r.enabled
+            ? kind === 'water' ? 'On — 5× daily' : `On — ${r.times.join(' & ')}`
+            : desc;
           return (
-            <div key={kind} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: kind === 'meal' ? '1px solid #F3F4F6' : 'none' }}>
+            <div key={kind} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: kind !== 'weigh' ? '1px solid #F3F4F6' : 'none' }}>
               <div>
                 <p style={{ fontSize: 14, fontWeight: 600, margin: 0 }}>{label}</p>
-                <p style={{ fontSize: 12, color: '#9CA3AF', margin: 0 }}>
-                  {r.enabled ? `On — ${r.times.join(' & ')}` : desc}
-                </p>
+                <p style={{ fontSize: 12, color: '#9CA3AF', margin: 0 }}>{summary}</p>
               </div>
               <input type="checkbox" checked={!!r.enabled} onChange={() => updateReminder(kind)} style={{ width: 18, height: 18 }} />
             </div>
@@ -325,6 +370,18 @@ export default function Settings() {
           <input className="input-field" placeholder="kcal" type="number" value={templateCals} onChange={e => setTemplateCals(e.target.value)} style={{ width: 80 }} />
           <button className="btn-small" onClick={handleAddTemplate}><Plus size={14} /></button>
         </div>
+      </div>
+
+      {/* Export */}
+      <div className="settings-group">
+        <h3>Export</h3>
+        <button className="btn-secondary" onClick={handleExportPdf} disabled={exporting} style={{ width: '100%', justifyContent: 'center', display: 'flex', alignItems: 'center', gap: 6 }}>
+          {exporting ? <Loader2 size={16} className="spin" /> : <Download size={16} />}
+          {exporting ? 'Building PDF…' : 'Download weekly report (PDF)'}
+        </button>
+        <p style={{ fontSize: 12, color: '#9CA3AF', marginTop: 8 }}>
+          Last 7 days: every meal, goals vs average, weight trend and hydration.
+        </p>
       </div>
 
       {/* Reset */}

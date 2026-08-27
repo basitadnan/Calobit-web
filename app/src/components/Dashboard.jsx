@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '../contexts/AppContext';
-import { getGreeting, sumMacros } from '../utils/calculations';
+import { getGreeting, sumMacros, sumNutrients } from '../utils/calculations';
 import { getWater, saveWater, getDateStr } from '../utils/storage';
 import { Bell, Plus, Check, Trash2, Droplets } from 'lucide-react';
 
@@ -20,6 +20,7 @@ export default function Dashboard() {
   const carbsPercent = Math.min((totals.carbs / goals.carbs) * 100, 100);
   const fatPercent = Math.min((totals.fat / goals.fat) * 100, 100);
   const allGoalsMet = totals.calories >= goals.calories && totals.protein >= goals.protein;
+  const nutr = sumNutrients(Object.values(mealsByType).flat());
 
   const [waterCount, setWaterCount] = useState(() => getWater(getDateStr()));
   const setGlasses = (n) => {
@@ -91,6 +92,26 @@ export default function Dashboard() {
               <div className="progress-bar" style={{ marginTop: 4 }}>
                 <div className="fill" style={{ width: `${m.pct}%`, background: m.val > m.max ? '#EF4444' : m.color }} />
               </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Extra nutrients (fiber / sugar / sodium) — free tier */}
+      <div className="insight-card slide-up" style={{ marginBottom: 20 }}>
+        <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 10px' }}>🌾 Nutrients</h3>
+        <div style={{ display: 'flex', gap: 12 }}>
+          {[
+            { label: 'Fiber', val: nutr.fiber, unit: 'g' },
+            { label: 'Sugar', val: nutr.sugar, unit: 'g' },
+            { label: 'Sodium', val: nutr.sodium, unit: 'mg' },
+          ].map(n => (
+            <div key={n.label} style={{ flex: 1, background: '#F9FAFB', borderRadius: 12, padding: '10px 12px', textAlign: 'center' }}>
+              <p style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>
+                {n.val >= 100 ? Math.round(n.val) : Math.round(n.val * 10) / 10}
+                <span style={{ fontSize: 11, fontWeight: 400, color: '#9CA3AF' }}> {n.unit}</span>
+              </p>
+              <p style={{ fontSize: 11, color: '#9CA3AF', margin: '2px 0 0' }}>{n.label}</p>
             </div>
           ))}
         </div>

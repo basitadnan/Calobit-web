@@ -103,6 +103,9 @@ export default function AddFoodFlow() {
       protein_g: aiParsedMeal.totalProtein || 0,
       carbs_g: aiParsedMeal.totalCarbs || 0,
       fat_g: aiParsedMeal.totalFat || 0,
+      fiber_g: aiParsedMeal.totalFiber || 0,
+      sugar_g: aiParsedMeal.totalSugar || 0,
+      sodium_mg: aiParsedMeal.totalSodium || 0,
       type: aiParsedMeal.selectedType || mealType,
       items: aiParsedMeal.items || [],
     });

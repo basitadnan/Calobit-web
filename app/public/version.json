@@ -1,7 +1,7 @@
 {
-  "versionCode": 13,
-  "versionName": "1.15",
+  "versionCode": 14,
+  "versionName": "1.16",
   "minVersionCode": 2,
-  "notes": "v1.15: New users now set up their profile first, then sign in with Google — the profile carries over automatically. No more random flickers on launch (a loading screen shows while your session is restored).",
+  "notes": "v1.16: Home-screen widget (calories + macros), 5 daily water reminders, fiber/sugar/sodium tracking, weekly PDF export — all free. Premium adds: weekly Wrapped recap and adaptive calories that auto-tune your goal from your weigh-ins.",
   "apkUrl": "https://calobit.vercel.app/calobit-latest.apk"
 }
