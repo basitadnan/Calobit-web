@@ -1,7 +1,7 @@
 {
-  "versionCode": 11,
-  "versionName": "1.13",
+  "versionCode": 12,
+  "versionName": "1.14",
   "minVersionCode": 2,
-  "notes": "v1.13: The sign-in screen now tells you if it found your existing CaloBit data — so you know nothing is lost. v1.12: fully automatic backup after binding. v1.11: honest sign-in state in Settings.",
+  "notes": "v1.14: When you link your old profile to a Google account, your saved goals now come with it (no more 2000 default). Added a safety net to catch any display hiccup after sign-in — instead of a white screen, you'll see a 'reload' button. v1.13: sign-in screen warns existing users their data is safe.",
   "apkUrl": "https://calobit.vercel.app/calobit-latest.apk"
 }

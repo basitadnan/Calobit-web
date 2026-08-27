@@ -109,7 +109,9 @@ export function AppProvider({ children }) {
       migrateLegacyProfile(username, userId);
       setLegacyProfiles(null);
       // Re-hydrate the just-migrated data.
-      setProfileState(storage.getProfile());
+      const p = storage.getProfile();
+      setProfileState(p);
+      if (p?.goals) setGoals(p.goals);
       setOnboardedState(storage.isOnboarded());
       setSettingsState(storage.getSettings());
       setGymOnboardedState(storage.isGymOnboarded());
