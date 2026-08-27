@@ -1,7 +1,7 @@
 {
-  "versionCode": 12,
-  "versionName": "1.14",
+  "versionCode": 13,
+  "versionName": "1.15",
   "minVersionCode": 2,
-  "notes": "v1.14: When you link your old profile to a Google account, your saved goals now come with it (no more 2000 default). Added a safety net to catch any display hiccup after sign-in — instead of a white screen, you'll see a 'reload' button. v1.13: sign-in screen warns existing users their data is safe.",
+  "notes": "v1.15: New users now set up their profile first, then sign in with Google — the profile carries over automatically. No more random flickers on launch (a loading screen shows while your session is restored).",
   "apkUrl": "https://calobit.vercel.app/calobit-latest.apk"
 }

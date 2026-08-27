@@ -11,13 +11,28 @@ import UpdateBanner from './components/UpdateBanner';
 import Auth from './components/Auth';
 
 function App() {
-  const { onboarded, currentTab, currentUser, addFlow } = useApp();
+  const { onboarded, currentTab, currentUser, addFlow, restoring } = useApp();
+
+  // Wait for the persisted session check so boot never flashes the wrong
+  // screen (onboarding/auth) for a split second.
+  if (restoring) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F9FAFB' }}>
+        <div style={{ textAlign: 'center' }}>
+          <img src="logo.png" alt="CaloBit" style={{ width: 64, height: 64, objectFit: 'contain', borderRadius: 14 }} />
+          <p style={{ marginTop: 12, fontSize: 14, fontWeight: 700, color: '#1A1A1A' }}>CaloBit</p>
+        </div>
+      </div>
+    );
+  }
+
+  // New users set up their profile first, then sign in with Google (the
+  // onboarding data carries over via the guest-data migration on sign-in).
+  if (!onboarded) return <Onboarding />;
 
   if (!currentUser) {
     return <Auth />;
   }
-
-  if (!onboarded) return <Onboarding />;
 
   const renderTab = () => {
     switch (currentTab) {

@@ -14,7 +14,11 @@ const AppContext = createContext();
 
 export function AppProvider({ children }) {
   const [profile, setProfileState] = useState(null);
-  const [onboarded, setOnboardedState] = useState(false);
+  const [onboarded, setOnboardedState] = useState(() => {
+    // Synchronous from storage so boot never flashes the wrong screen.
+    try { return storage.isOnboarded(); } catch { return false; }
+  });
+  const [restoring, setRestoring] = useState(true); // session restore in progress
   const [todayMeals, setTodayMeals] = useState([]);
   const [goals, setGoals] = useState({ calories: 2000, protein: 130, carbs: 250, fat: 65 });
   const [settings, setSettingsState] = useState({ units: 'metric', aiNudges: true });
@@ -61,6 +65,20 @@ export function AppProvider({ children }) {
     }
   }, []);
 
+  // Pull all user data back into state after a migration or login.
+  const hydrateFromStorage = useCallback(() => {
+    const p = storage.getProfile();
+    setProfileState(p);
+    if (p?.goals) setGoals(p.goals);
+    setOnboardedState(storage.isOnboarded());
+    setSettingsState(storage.getSettings());
+    setGymOnboardedState(storage.isGymOnboarded());
+    setRoutine(storage.getGymRoutine());
+    setWorkoutLogs(storage.getWorkoutLogs());
+    setWalkLogs(storage.getWalkLogs());
+    setIsPremium(isPremiumActive());
+  }, []);
+
   // Supabase session lifecycle. currentUser = Supabase user id.
   useEffect(() => {
     const handleSession = (session) => {
@@ -69,10 +87,18 @@ export function AppProvider({ children }) {
       storage.setActiveUser(userId);
       setCurrentUser(userId);
       setSessionUser(session.user);
-      // First sign-in with Google: offer to bind legacy local profiles.
+      // First sign-in with Google: attach any local data to the account.
       if (!hasMigrated(userId)) {
         const legacy = findLegacyProfiles();
-        if (legacy.length > 0) setLegacyProfiles(legacy);
+        if (legacy.length === 1 && legacy[0].username === '') {
+          // Only unscoped data (e.g. a fresh onboarding completed before
+          // sign-in) → attach silently; a picker would confuse new users.
+          migrateLegacyProfile('', userId);
+          hydrateFromStorage();
+        } else if (legacy.length > 0) {
+          // Registered legacy profiles (or mixed) → let them choose.
+          setLegacyProfiles(legacy);
+        }
       }
     };
 
@@ -98,6 +124,7 @@ export function AppProvider({ children }) {
         setSessionUser(null);
         setCurrentUser('');
       }
+      setRestoring(false);
     });
 
     return () => sub.subscription.unsubscribe();
@@ -108,19 +135,9 @@ export function AppProvider({ children }) {
     if (userId && legacyProfiles) {
       migrateLegacyProfile(username, userId);
       setLegacyProfiles(null);
-      // Re-hydrate the just-migrated data.
-      const p = storage.getProfile();
-      setProfileState(p);
-      if (p?.goals) setGoals(p.goals);
-      setOnboardedState(storage.isOnboarded());
-      setSettingsState(storage.getSettings());
-      setGymOnboardedState(storage.isGymOnboarded());
-      setRoutine(storage.getGymRoutine());
-      setWorkoutLogs(storage.getWorkoutLogs());
-      setWalkLogs(storage.getWalkLogs());
-      setIsPremium(isPremiumActive());
+      hydrateFromStorage(); // re-hydrate the just-migrated data
     }
-  }, [legacyProfiles]);
+  }, [legacyProfiles, hydrateFromStorage]);
 
   const skipLegacyBinding = useCallback(() => {
     const userId = storage.getActiveUser();
@@ -336,7 +353,7 @@ export function AppProvider({ children }) {
       selectedDate, setSelectedDate, dateStr,
       gymOnboarded, completeGymOnboarding, routine, saveRoutine, workoutLogs, logWorkout,
       walkLogs, logWalk,
-      currentUser, sessionUser, login, register, logout,
+      currentUser, sessionUser, restoring, login, register, logout,
       bindLegacyProfile, skipLegacyBinding,
       isPremium, openCheckout, closeCheckout, markPremiumActivated,
       bindOpen, openBind, closeBind, bindInfo,
