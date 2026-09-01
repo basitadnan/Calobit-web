@@ -1,7 +1,7 @@
 {
-  "versionCode": 21,
-  "versionName": "1.23",
+  "versionCode": 22,
+  "versionName": "1.24",
   "minVersionCode": 2,
-  "notes": "v1.23: CaloBit is now fully local and 100% free — no account, no sign-in, no Supabase. All data stays on your phone. AI features (meal logging, label scanning, weekly coach) are free and unlimited.",
+  "notes": "v1.24: Fixed a crash on Android 14+ when starting a Walk/Run session — the app was missing a required foreground service type declaration.",
   "apkUrl": "https://calobit.vercel.app/calobit-latest.apk"
 }
